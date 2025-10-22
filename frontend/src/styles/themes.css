@@ -1,0 +1,427 @@
+/* ===== VARIABLES DE TEMA ===== */
+:root {
+  /* Modo Oscuro (por defecto) */
+  --bg-primary: #1a1a1d;
+  --bg-secondary: #2a2a2e;
+  --bg-tertiary: #1f1f23;
+  --bg-card: #2a2a2e;
+  --bg-input: #1a1a1d;
+  --bg-hover: #323238;
+  --bg-active: #76f6ff;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --text-tertiary: #aaa;
+  --text-muted: #666;
+  --text-inverse: #000000;
+  
+  --accent-primary: #76f6ff;
+  --accent-secondary: #5ec5cc;
+  --accent-hover: #4a9da3;
+  
+  --border-primary: #444;
+  --border-secondary: rgba(255,255,255,0.08);
+  --border-accent: #76f6ff;
+  
+  --shadow-primary: rgba(0, 0, 0, 0.3);
+  --shadow-secondary: rgba(0, 0, 0, 0.6);
+  --shadow-accent: rgba(118, 246, 255, 0.3);
+  
+  --success: #51cf66;
+  --error: #ff6b6b;
+  --warning: #ffd43b;
+  --info: #339af0;
+}
+
+/* Asegurar que el modo oscuro se aplique por defecto */
+html:not([data-theme="light"]) {
+  /* Modo Oscuro (por defecto) */
+  --bg-primary: #1a1a1d;
+  --bg-secondary: #2a2a2e;
+  --bg-tertiary: #1f1f23;
+  --bg-card: #2a2a2e;
+  --bg-input: #1a1a1d;
+  --bg-hover: #323238;
+  --bg-active: #76f6ff;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --text-tertiary: #aaa;
+  --text-muted: #666;
+  --text-inverse: #000000;
+  
+  --accent-primary: #76f6ff;
+  --accent-secondary: #5ec5cc;
+  --accent-hover: #4a9da3;
+  
+  --border-primary: #444;
+  --border-secondary: rgba(255,255,255,0.08);
+  --border-accent: #76f6ff;
+  
+  --shadow-primary: rgba(0, 0, 0, 0.3);
+  --shadow-secondary: rgba(0, 0, 0, 0.6);
+  --shadow-accent: rgba(118, 246, 255, 0.3);
+  
+  --success: #51cf66;
+  --error: #ff6b6b;
+  --warning: #ffd43b;
+  --info: #339af0;
+}
+
+[data-theme="light"] {
+  /* Modo Claro */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  --bg-hover: #e9ecef;
+  --bg-active: #007bff;
+  
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-tertiary: #6c757d;
+  --text-muted: #adb5bd;
+  --text-inverse: #ffffff;
+  
+  --accent-primary: #007bff;
+  --accent-secondary: #0056b3;
+  --accent-hover: #004085;
+  
+  --border-primary: #dee2e6;
+  --border-secondary: rgba(0,0,0,0.08);
+  --border-accent: #007bff;
+  
+  --shadow-primary: rgba(0, 0, 0, 0.1);
+  --shadow-secondary: rgba(0, 0, 0, 0.2);
+  --shadow-accent: rgba(0, 123, 255, 0.3);
+  
+  --success: #28a745;
+  --error: #dc3545;
+  --warning: #ffc107;
+  --info: #17a2b8;
+}
+
+/* ===== ESTILOS BASE ===== */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+html {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ===== LAYOUT ===== */
+.layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+}
+
+.sidebar {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-right: 1px solid var(--border-primary);
+}
+
+.sidebar-header {
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.logo {
+  color: var(--accent-primary);
+}
+
+.toggle-sidebar-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  color: var(--accent-primary);
+}
+
+.toggle-sidebar-btn:hover {
+  background: var(--bg-hover);
+  color: var(--accent-primary);
+}
+
+/* ===== NAVEGACIÓN ===== */
+.sidebar nav ul li a {
+  color: var(--text-secondary);
+  border-left: 3px solid transparent;
+}
+
+.sidebar nav ul li a:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-left-color: var(--accent-primary);
+}
+
+.sidebar nav ul li.active a {
+  background: var(--bg-active);
+  color: var(--text-inverse);
+  border-left-color: var(--accent-primary);
+}
+
+/* ===== BOTONES ===== */
+.settings-btn, .logout-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-primary);
+}
+
+.settings-btn:hover, .logout-btn:hover {
+  background: var(--bg-hover);
+  color: var(--accent-primary);
+}
+
+.settings-btn.active {
+  background: var(--bg-active);
+  color: var(--text-inverse);
+  border-left-color: var(--accent-primary);
+}
+
+/* ===== CONTENIDO PRINCIPAL ===== */
+.content {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* ===== FORMULARIOS ===== */
+input, select, textarea {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 2px solid var(--border-primary);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--shadow-accent);
+}
+
+input.disabled {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+/* ===== BOTONES ESTÁNDAR ===== */
+.btn-standard {
+  background: #25727a;
+  border: 1px solid #3a8d95;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.btn-standard:hover {
+  background: #1e5a61;
+  border-color: #2d7a82;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-standard:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn-standard:disabled {
+  background: #555;
+  border-color: #666;
+  color: #999;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Tamaños de botones */
+.btn-standard.btn-sm {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.btn-standard.btn-lg {
+  padding: 10px 20px;
+  font-size: 16px;
+}
+
+/* Variantes de botones */
+.btn-standard.btn-primary {
+  background: #25727a;
+  border-color: #3a8d95;
+}
+
+.btn-standard.btn-primary:hover {
+  background: #1e5a61;
+  border-color: #2d7a82;
+}
+
+.btn-standard.btn-secondary {
+  background: transparent;
+  border-color: #3a8d95;
+  color: #3a8d95;
+}
+
+.btn-standard.btn-secondary:hover {
+  background: #3a8d95;
+  color: #fff;
+}
+
+.btn-standard.btn-danger {
+
+}
+
+.btn-standard.btn-danger:hover {
+ 
+}
+
+.btn-standard.btn-success {
+  background: #28a745;
+  border-color: #1e7e34;
+}
+
+.btn-standard.btn-success:hover {
+  background: #1e7e34;
+  border-color: #1c7430;
+}
+
+/* ===== CARDS Y CONTENEDORES ===== */
+.perfil-container, .configuracion-container, .infotrend-container, .archivados-container {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.perfil-card, .config-section, .infotrend-inner, .archivado-card, .stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 4px 6px var(--shadow-primary);
+}
+
+.perfil-stats, .section-header {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+/* ===== TABLAS ===== */
+.trends-table, .fuentes-table {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-primary);
+}
+
+.trends-table th, .fuentes-table th {
+  background-color: var(--bg-tertiary);
+  color: var(--accent-primary);
+}
+
+.trends-table td, .fuentes-table td {
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.trends-table tr:hover, .fuentes-table tr:hover {
+  background-color: var(--bg-hover);
+}
+
+/* ===== ALERTAS ===== */
+.alert-error {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--error);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.alert-success {
+  background: rgba(40, 167, 69, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+/* ===== ESTADOS ===== */
+.status-active {
+  color: var(--success) !important;
+}
+
+.status-inactive {
+  color: var(--error) !important;
+}
+
+/* ===== TÍTULOS ===== */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+}
+
+.perfil-title, .configuracion-title, .infotrend-title, .archivados-header h1 {
+  color: var(--accent-primary);
+}
+
+/* ===== ENLACES ===== */
+a {
+  color: var(--accent-primary);
+}
+
+a:hover {
+  color: var(--accent-secondary);
+}
+
+/* ===== INPUTS ESPECIALES ===== */
+.input-wrapper {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-primary);
+}
+
+.input-wrapper input {
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+}
+
+/* ===== SCROLLBARS ===== */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+/* ===== MODALES ===== */
+.modal-overlay {
+  background: var(--shadow-secondary);
+}
+
+.modal-content {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .sidebar {
+    background-color: var(--bg-secondary);
+  }
+  
+  .content {
+    background-color: var(--bg-primary);
+  }
+}

@@ -1,0 +1,634 @@
+.home-container {
+  display: flex;
+  height: 100vh;
+  background-color: #1a1a1d;
+  color: white;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+
+
+
+.sidebar {
+  width: 220px;
+  background-color: #2a2a2e;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+
+
+
+.sidebar .logo {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #76f6ff;
+}
+
+
+
+
+.sidebar h2 {
+  font-size: 20px;
+  color: #76f6ff;
+  margin-bottom: 30px;
+}
+
+
+
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  width: 100%;
+}
+
+.sidebar li {
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  
+}
+
+.sidebar li a {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+
+.sidebar li:hover {
+ 
+  color: #000;
+}
+
+
+
+
+
+
+
+
+.sidebar li.active a {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+
+
+
+.main-content {
+  flex-grow: 1;
+  padding: 40px;
+  overflow-y: auto;
+  padding-bottom: 0px;
+}
+
+
+
+
+.main-title {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #76f6ff;
+  text-align: center;
+}
+
+
+
+
+.trends-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #2a2a2e;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 40px;
+  table-layout: fixed; /* Permite controlar el ancho de las columnas */
+}
+
+
+
+
+.trends-table th,
+.trends-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #444;
+  text-align: left;
+  font-size: 14px;
+  overflow: hidden;
+  word-wrap: break-word;
+  white-space: normal;
+  line-height: 1.4;
+  vertical-align: top;
+}
+
+
+
+
+/* ===== ANCHO DE COLUMNAS ESPECÍFICAS ===== */
+/* Columna 1: Info */
+.trends-table th:nth-child(1),
+.trends-table td:nth-child(1) {
+  width: 60px;
+}
+
+
+
+
+/* Columna 2: Título del Trend */
+.trends-table th:nth-child(2),
+.trends-table td:nth-child(2) {
+  width: 25%;
+}
+
+
+
+
+/* Columna 3: Link del Trend */
+.trends-table th:nth-child(3),
+.trends-table td:nth-child(3) {
+  width: 20%;
+}
+
+
+
+
+/* Columna 4: Nombre Newsletter Relacionado */
+.trends-table th:nth-child(4),
+.trends-table td:nth-child(4) {
+  width: 20%;
+}
+
+
+
+
+/* Columna 5: Fecha Relación */
+.trends-table th:nth-child(5),
+.trends-table td:nth-child(5) {
+  width: 10%;
+}
+
+
+
+
+/* Columna 6: Archivar */
+.trends-table th:nth-child(6),
+.trends-table td:nth-child(6) {
+  width: 80px;
+}
+
+
+
+
+/* Columna 7: Eliminar */
+.trends-table th:nth-child(7),
+.trends-table td:nth-child(7) {
+  width: 80px;
+}
+
+
+
+
+/* ===== ESTILOS PARA COLUMNAS ESPECÍFICAS ===== */
+/* Columna del título del trend - permitir wrap del texto */
+.trends-table td:nth-child(2) {
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+
+
+
+/* Columna del link - mostrar URL completa en hover */
+.trends-table td:nth-child(3) {
+  position: relative;
+}
+
+
+
+
+.trends-table td:nth-child(3) a {
+  display: block;
+  overflow: hidden;
+  word-wrap: break-word;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+
+
+
+.trends-table td:nth-child(3) a:hover {
+  background-color: #1c1c1e;
+  padding: 8px;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+
+
+
+/* Todas las celdas permiten wrap del texto */
+.trends-table td {
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.4;
+  max-height: none;
+}
+
+
+
+
+.trends-table thead {
+  background-color: #1c1c1e;
+}
+
+
+
+
+.status {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+
+
+
+.status.published {
+  background-color: #00ff99;
+  color: #000;
+}
+
+
+
+
+.status.not-published {
+  background-color: #ff4c4c;
+  color: #000;
+}
+
+
+
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: #ff4c4c;
+  font-size: 0;
+  cursor: pointer;
+}
+
+
+
+
+.archive-btn {
+  background: none;
+  border: none;
+  color: #28a745;
+  font-size: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+
+
+
+.archive-btn:hover {
+  transform: scale(1.1);
+}
+
+
+
+
+.footer {
+  text-align: center;
+  margin-top: 40px;
+  position: sticky;
+  bottom: 0;
+  background: #1a1a1d;
+  padding: 12px 0 16px 0;
+  border-top: 1px solid #333;
+  z-index: 5;
+}
+
+
+
+
+.footer p {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+
+
+
+.input-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #2a2a2e;
+  border-radius: 20px;
+  padding: 8px 12px;
+  width: min(720px, 90%);
+  margin: 0 auto;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.45);
+}
+
+
+
+
+.input-wrapper input {
+  flex-grow: 1;
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+
+
+
+.input-wrapper button {
+  background: #25727a;
+  border: 1px solid #3a8d95;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+/* Shared button styles */
+.primary-btn {
+  background: #25727a;
+  border: 1px solid #3a8d95;
+  color: #fff;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.danger-btn {
+
+  color: #fff;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.danger-btn:hover {
+  background: #c82333;
+  border-color: #bd2130;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.danger-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: #3a8d95;
+  border: 1px solid #3a8d95;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-secondary:hover {
+  background: #3a8d95;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-danger {
+  background: #dc3545;
+  border: 1px solid #c82333;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+  border-color: #bd2130;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Larger button size utility */
+.btn-lg {
+  padding: 10px 18px;
+  font-size: 15px;
+  border-radius: 8px;
+  min-width: 160px;
+}
+
+
+
+
+.logout-btn {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: #76f6ff;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 12px 0;
+  transition: color 0.3s;
+}
+
+
+
+
+.logout-btn:hover {
+  color: #4a9da3;
+  background: none;
+}
+
+
+
+
+.info-btn-outline {
+  background: transparent;      
+  border: 2px solid #76f6ff;
+  color: #76f6ff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s, color 0.2s;
+  height: 32px;
+}
+
+
+
+
+.info-btn-outline:hover {
+  background-color: #76f6ff4b;
+  color: #000;
+}
+
+
+
+
+.info-btn-outline img {
+  max-width: 20px;
+  max-height: 20px;
+}
+
+
+
+
+/* Estilos para el header con indicador de conexión */
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+
+
+
+.main-title {
+  text-align: left;
+  margin-bottom: 0;
+  color: #76f6ff;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+
+
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #2a2a2e;
+  border-radius: 20px;
+  border: 1px solid #444;
+}
+
+
+
+
+.status-indicator {
+  font-size: 1.2rem;
+}
+
+
+
+
+.status-text {
+  font-size: 0.9rem;
+  color: #ccc;
+  font-weight: 500;
+}
+
+
+
+
+.status-indicator.connected {
+  animation: pulse 2s infinite;
+}
+
+
+
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+
+
+
+.processing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #4a9da3;
+  border-radius: 15px;
+  color: white;
+  font-size: 0.8rem;
+  animation: slideIn 0.3s ease-in;
+}
+
+
+
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+
+
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+
+
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+
+
+

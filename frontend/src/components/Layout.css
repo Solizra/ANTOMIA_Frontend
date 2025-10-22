@@ -1,0 +1,251 @@
+/* ===== LAYOUT GENERAL ===== */
+.layout {
+    display: flex;
+    height: 100vh; /* que ocupe toda la pantalla */
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    position: relative;
+    min-width: fit-content;
+    border-right: 1px solid var(--border-secondary);
+  }
+  
+  .sidebar.expanded {
+    width: auto;
+    min-width: 170px;
+  }
+  
+  .sidebar.collapsed {
+    width: auto;
+    min-width: 50px;
+    padding: 10px 8px;
+  }
+  
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    min-width: fit-content;
+  }
+  
+  .sidebar.collapsed .sidebar-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 10px;
+    min-width: fit-content;
+  }
+  
+  .logo {
+    margin-bottom: 0;
+    transition: all 0.3s ease;
+    font-size: 18px;
+    color: var(--accent-primary);
+    white-space: nowrap;
+    margin-right: 10px;
+  }
+  
+  .sidebar.collapsed .logo {
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+    pointer-events: none;
+  }
+  
+  .toggle-sidebar-btn {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+    color: var(--accent-primary);
+    cursor: pointer;
+    padding: 6px;
+    margin-top: 8px;
+    border-radius: 8px;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    flex-shrink: 0;
+  }
+  
+  .sidebar.collapsed .toggle-sidebar-btn {
+    padding: 3px;
+    margin: 0;
+  }
+  
+  .toggle-sidebar-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+    transform: translateY(-1px);
+  }
+  
+  .sidebar nav {
+    transition: all 0.3s ease;
+    min-width: fit-content;
+  }
+  
+  .sidebar nav.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  
+  .sidebar nav.hidden {
+    opacity: 0;
+    transform: translateX(-20px);
+    position: absolute;
+    pointer-events: none;
+  }
+  
+  .sidebar nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .sidebar nav ul li {
+    margin-bottom: 8px;
+    white-space: nowrap;
+  }
+  
+  .sidebar nav ul li a {
+    border: 1px solid var(--border-secondary);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
+    border-left: 3px solid transparent;
+  }
+  
+  .sidebar nav ul li.active a {
+    background: var(--bg-active);
+    color: var(--text-inverse);
+    border-left-color: var(--accent-primary);
+  }
+  
+  .sidebar nav ul li a:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+    border-left-color: var(--accent-primary);
+  }
+  
+  /* ===== SECCIÓN DE CONFIGURACIÓN ===== */
+  .settings-section {
+    margin-bottom: 2px;
+    transition: all 0.3s ease;
+  }
+  
+  .settings-section.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  
+  .settings-section.hidden {
+    opacity: 0;
+    transform: translateX(-20px);
+    position: absolute;
+    pointer-events: none;
+  }
+  
+  .settings-btn {
+    border: 1px solid var(--border-secondary);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
+    border-left: 3px solid transparent;
+  }
+  
+  .settings-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+    transform: translateY(-1px);
+    border-left-color: var(--accent-primary);
+  }
+  
+  .settings-btn.active {
+    background: var(--bg-active);
+    color: var(--text-inverse);
+    border-left-color: var(--accent-primary);
+  }
+  
+  .settings-btn span {
+    font-weight: 500;
+  }
+
+  /* ===== BOTÓN DE LOGOUT ===== */
+  .logout-btn {
+    border: 1px solid var(--border-secondary);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+    margin-top: auto;
+    white-space: nowrap;
+  }
+  
+  .logout-btn.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  
+  .logout-btn.hidden {
+    opacity: 0;
+    transform: translateX(-20px);
+    position: absolute;
+    pointer-events: none;
+  }
+  
+  .logout-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+    transform: translateY(-1px);
+  }
+  
+  /* ===== CONTENIDO PRINCIPAL ===== */
+  .content {
+    flex: 1;
+    background-color: var(--bg-primary);
+    overflow-y: auto;
+    transition: all 0.3s ease;
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  .content::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+  
+  /* ===== ESTADOS DEL LAYOUT ===== */
+  .layout.sidebar-expanded .content {
+    margin-left: 0;
+  }
+  
+  .layout.sidebar-collapsed .content {
+    margin-left: 0;
+  }
