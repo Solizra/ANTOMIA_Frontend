@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://solizra.github.io/PROYECTO_FINAL-ANTOMIA",
+  "homepage": "https://solizra.github.io/ANTOMIA_Frontend",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "./InfoTrend.css";
+import { apiURL } from "../constants";
 
 function InfoTrend() {
   const { id } = useParams();
@@ -8,13 +9,14 @@ function InfoTrend() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+
   useEffect(() => {
     const loadTrendData = async () => {
       try {
         setLoading(true);
         
         // Obtener siempre desde el backend para depender de la BDD
-        const response = await fetch(`http://localhost:3000/api/Trends/${id}`);
+        const response = await fetch(`${apiURL}/api/Trends/${id}`);
         if (response.ok) {
           const trendData = await response.json();
           const mappedTrend = {

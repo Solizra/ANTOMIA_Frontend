@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import './Fuentes.css';
+import { apiURL } from '../constants';
 
 function Newsletters() {
   const [items, setItems] = useState([]);
@@ -13,10 +14,11 @@ function Newsletters() {
   const [activeItem, setActiveItem] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [draftResumen, setDraftResumen] = useState('');
+  
 
   const cargar = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/Newsletter?limit=100');
+      const res = await fetch(`${apiURL}/api/Newsletter?limit=100`);
       const data = await res.json();
       if (!res.ok || !Array.isArray(data)) throw new Error('No se pudieron cargar los newsletters');
       const ordered = [...data].sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
@@ -38,7 +40,7 @@ function Newsletters() {
     if (!u.startsWith('https://pulsobyantom.substack.com/p')) { setError('Solo se aceptan newsletters de Pulso by Antom (Substack)'); return; }
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/api/Newsletter', {
+      const res = await fetch(`${apiURL}/api/Newsletter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ link: u })
@@ -73,7 +75,7 @@ function Newsletters() {
       const qs = new URLSearchParams();
       if (id != null) qs.set('id', String(id));
       if (item?.link) qs.set('link', item.link);
-      const res = await fetch(`http://localhost:3000/api/Newsletter?${qs.toString()}`, { method: 'DELETE' });
+      const res = await fetch(`${apiURL}/api/Newsletter?${qs.toString()}`, { method: 'DELETE' });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error((data && (data.error || data.message)) || 'No se pudo eliminar');
       setSuccess('Newsletter eliminado');
@@ -254,7 +256,7 @@ function Newsletters() {
                     className="primary-btn"
                     onClick={async () => {
                       try {
-                        const res = await fetch(`http://localhost:3000/api/Newsletter/${activeItem.id}/resumen`, {
+                        const res = await fetch(`${apiURL}/api/Newsletter/${activeItem.id}/resumen`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ Resumen: draftResumen || '' })

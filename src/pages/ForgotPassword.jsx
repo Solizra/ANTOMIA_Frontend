@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { apiURL } from '../constants';
 import './ForgotPassword.css';
 
 function ForgotPassword() {
@@ -18,7 +19,7 @@ function ForgotPassword() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `http://localhost:5173/auth/callback`,
+        redirectTo: `${apiURL}/auth/callback`,
       });
 
       if (error) {

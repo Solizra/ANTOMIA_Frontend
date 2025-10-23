@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import './Fuentes.css';
+import { apiURL } from '../constants';
 
 function Fuentes() {
   const [fuentes, setFuentes] = useState([]);
@@ -11,7 +12,7 @@ function Fuentes() {
 
   const cargarFuentes = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/Fuentes');
+      const res = await fetch(`${apiURL}/api/Fuentes`);
       const data = await res.json();
       if (!res.ok || !Array.isArray(data)) throw new Error('No se pudieron cargar las fuentes');
       // Orden: activas primero, luego alfabético por fuente
@@ -34,7 +35,7 @@ function Fuentes() {
     if (!d) { setError('Debes ingresar una fuente'); return; }
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/api/Fuentes', {
+      const res = await fetch(`${apiURL}/api/Fuentes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fuente: d, categoria: c })
@@ -54,7 +55,7 @@ function Fuentes() {
   const eliminarFuente = async (d) => {
     setError(''); setSuccess('');
     try {
-      const res = await fetch(`http://localhost:3000/api/Fuentes?fuente=${encodeURIComponent(d)}`, { method: 'DELETE' });
+      const res = await fetch(`${apiURL}/api/Fuentes?fuente=${encodeURIComponent(d)}`, { method: 'DELETE' });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error((data && data.error) || 'No se pudo eliminar');
       setSuccess('Fuente desactivada');

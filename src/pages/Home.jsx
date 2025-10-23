@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Home.css";
 import { supabase } from "../supabaseClient";
 import ojitoImage from "../assets/ojito.png";
+import { apiURL } from "../constants";
 
 function Home() {
-  const location = useLocation();
+ 
   const navigate = useNavigate();
 
   const [trends, setTrends] = useState([]);
@@ -49,7 +50,7 @@ function Home() {
     (async () => {
       try {
         console.log('🔄 Cargando trends desde la base de datos...');
-        const res = await fetch('http://localhost:3000/api/Trends?limit=1000');
+        const res = await fetch(`${apiURL}/api/Trends?limit=1000`);
         console.log('📡 Respuesta del servidor:', res.status, res.statusText);
         
         if (!res.ok) {
@@ -100,7 +101,7 @@ function Home() {
     const connectToSSE = () => {
       try {
         console.log('🔌 Intentando conectar a SSE...');
-        eventSource = new EventSource('http://localhost:3000/api/events');
+        eventSource = new EventSource(`${apiURL}/api/events`);
         
         eventSource.onopen = () => {
           console.log('🔌 ✅ Conectado al servidor de eventos SSE');
@@ -257,7 +258,7 @@ function Home() {
   const cargarTrendsDesdeBDD = async () => {
     try {
       console.log('🔄 Recargando trends desde la base de datos...');
-      const res = await fetch('http://localhost:3000/api/Trends?limit=1000');
+      const res = await fetch(`${apiURL}/api/Trends?limit=1000`);
       console.log('📡 Respuesta cargarTrendsDesdeBDD:', res.status, res.statusText);
       
       if (!res.ok) {
@@ -319,7 +320,7 @@ function Home() {
     let isMounted = true;
     const cargarTrends = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/Trends?limit=1000');
+        const res = await fetch(`${apiURL}/api/Trends?limit=1000`);
         if (!res.ok) {
           console.log('⚠️ Fallback: Backend no disponible');
           return;
@@ -375,7 +376,7 @@ function Home() {
     
     // Enviar feedback positivo al backend
     try {
-      await fetch('http://localhost:3000/api/Feedback', {
+      await fetch(`${apiURL}/api/Feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -406,7 +407,7 @@ function Home() {
 
     // Enviar feedback negativo al backend
     try {
-      await fetch('http://localhost:3000/api/Feedback', {
+      await fetch(`${apiURL}/api/Feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -425,7 +426,7 @@ function Home() {
     // Borrar en backend
     if (id !== undefined && id !== null && !isNaN(Number(id))) {
       try {
-        const res = await fetch(`http://localhost:3000/api/Trends/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${apiURL}/api/Trends/${id}`, { method: 'DELETE' });
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({}));
           console.error('❌ Error al borrar trend en backend', res.status, errorData);
@@ -454,7 +455,7 @@ function Home() {
     if (!input.trim()) return;
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:3000/api/Newsletter/analizar', {
+      const res = await fetch(`${apiURL}/api/Newsletter/analizar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input }),
@@ -552,7 +553,7 @@ function Home() {
               onClick={async () => {
                 try {
                   console.log('🧪 Ejecutando búsqueda manual de noticias...');
-                  const response = await fetch('http://localhost:3000/api/news/search-now', {
+                  const response = await fetch(`${apiURL}/api/news/search-now`, {
                     method: 'POST'
                   });
                   const data = await response.json();
