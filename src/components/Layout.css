@@ -146,6 +146,7 @@
   
   /* ===== SECCIÓN DE CONFIGURACIÓN ===== */
   .settings-section {
+    margin-top: 400px;
     margin-bottom: 2px;
     transition: all 0.3s ease;
   }
@@ -205,9 +206,12 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
-    margin-top: auto;
+    transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    text-decoration: none;
     white-space: nowrap;
+    border-left: 3px solid transparent;
+    margin-top: auto;
+    font-size: 12px;
   }
   
   .logout-btn.visible {
@@ -226,6 +230,13 @@
     background: var(--bg-hover);
     color: var(--accent-primary);
     transform: translateY(-1px);
+    border-left-color: var(--accent-primary);
+  }
+  
+  .logout-btn.active {
+    background: var(--bg-active);
+    color: var(--text-inverse);
+    border-left-color: var(--accent-primary);
   }
   
   /* ===== CONTENIDO PRINCIPAL ===== */
