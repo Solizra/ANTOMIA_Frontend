@@ -18,8 +18,14 @@ function ForgotPassword() {
     setMessage('');
 
     try {
+      // Usar la URL actual del navegador para la redirección
+      const currentOrigin = window.location.origin;
+      const redirectUrl = `${currentOrigin}/password-reset`;
+      
+      console.log('Redirigiendo a:', redirectUrl);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${apiURL}/auth/callback`,
+        redirectTo: redirectUrl,
       });
 
       if (error) {

@@ -13,6 +13,8 @@ import AuthCallback from "./pages/AuthCallback";
 import './styles/themes.css';
 import ForgotPassword from "./pages/ForgotPassword";
 import ChangePassword from "./pages/ChangePassword";
+import PasswordReset from "./pages/PasswordReset";
+import LocalhostRedirect from "./pages/LocalhostRedirect";
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/password-reset" element={<PasswordReset />} />
+        <Route path="/localhost-redirect" element={<LocalhostRedirect />} />
 
         /* Rutas con layout */
         <Route element={<Layout />}>

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import './ChangePassword.css';
 
 function ChangePassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -15,12 +16,22 @@ function ChangePassword() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isResetFlow, setIsResetFlow] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState('');
 
   useEffect(() => {
+    // Verificar si venimos del password reset
+    if (location.state?.isResetFlow && location.state?.verified) {
+      setIsResetFlow(true);
+      setMessage('Enlace verificado correctamente. Puedes establecer tu nueva contraseña.');
+      return;
+    }
+
     // Verificar si venimos de un flujo de reset de contraseña
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
     const type = searchParams.get('type');
+    
+    console.log('URL params:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
     
     // Detectar si es un flujo de recuperación de contraseña
     if (accessToken && refreshToken && type === 'recovery') {
@@ -29,12 +40,25 @@ function ChangePassword() {
       supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('Error al establecer sesión:', error);
+          setError('Error al procesar el enlace de recuperación. Por favor, solicita un nuevo enlace.');
+        } else {
+          console.log('Sesión establecida correctamente:', data);
+          setMessage('Enlace verificado correctamente. Puedes establecer tu nueva contraseña.');
+        }
       });
+    } else if (type === 'recovery') {
+      // Si es tipo recovery pero no hay tokens, puede ser que venga del callback
+      setIsResetFlow(true);
+      setMessage('Procesando enlace de recuperación...');
     } else {
       // Verificar si el usuario está logueado (flujo normal desde perfil)
       const checkUser = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
+          // Si no hay usuario y no es un flujo de reset, redirigir al login
           navigate('/');
           return;
         }
@@ -42,7 +66,7 @@ function ChangePassword() {
       };
       checkUser();
     }
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, location.state]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -50,11 +74,32 @@ function ChangePassword() {
       ...prev,
       [name]: value
     }));
+
+    // Calcular fortaleza de contraseña
+    if (name === 'newPassword') {
+      const strength = calculatePasswordStrength(value);
+      setPasswordStrength(strength);
+    }
+  };
+
+  const calculatePasswordStrength = (password) => {
+    if (password.length === 0) return '';
+    if (password.length < 6) return 'Débil';
+    if (password.length < 8) return 'Media';
+    if (password.length >= 8 && /(?=.*[A-Za-z])(?=.*\d)/.test(password)) return 'Fuerte';
+    return 'Media';
   };
 
   const validatePassword = (password) => {
     if (password.length < 6) {
       return 'La contraseña debe tener al menos 6 caracteres';
+    }
+    if (password.length > 128) {
+      return 'La contraseña no puede tener más de 128 caracteres';
+    }
+    // Validación adicional: al menos una letra y un número
+    if (!/(?=.*[A-Za-z])(?=.*\d)/.test(password)) {
+      return 'La contraseña debe contener al menos una letra y un número';
     }
     return null;
   };
@@ -130,6 +175,11 @@ function ChangePassword() {
               : 'Ingresa tu contraseña actual y la nueva contraseña'
             }
           </p>
+          {!isResetFlow && !searchParams.get('access_token') && (
+            <p style={{ color: '#ffaa00', fontSize: '0.9rem', marginTop: '10px' }}>
+              💡 Para recuperar tu contraseña, usa el enlace "¿Olvidaste tu contraseña?" en el login
+            </p>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="change-password-form">
@@ -157,10 +207,15 @@ function ChangePassword() {
               name="newPassword"
               value={formData.newPassword}
               onChange={handleInputChange}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 6 caracteres, letra y número"
               required
               disabled={loading}
             />
+            {passwordStrength && (
+              <div className={`password-strength ${passwordStrength.toLowerCase()}`}>
+                Fortaleza: {passwordStrength}
+              </div>
+            )}
           </div>
 
           <div className="form-group">

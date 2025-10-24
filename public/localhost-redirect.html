@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirigiendo...</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #1a1a1d;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            background-color: #2a2a2e;
+            border-radius: 12px;
+            box-shadow: 0 0 20px #5ec5cc;
+        }
+        h1 {
+            color: #76f6ff;
+            margin-bottom: 20px;
+        }
+        p {
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #444;
+            border-top: 4px solid #76f6ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Redirigiendo...</h1>
+        <p>Te estamos llevando a la página correcta para cambiar tu contraseña.</p>
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        // Obtener todos los parámetros de la URL actual
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Construir la nueva URL con GitHub Pages
+        const newUrl = new URL('https://solizra.github.io/ANTOMIA_Frontend/password-reset');
+        
+        // Copiar todos los parámetros
+        for (const [key, value] of urlParams) {
+            newUrl.searchParams.set(key, value);
+        }
+        
+        // Redirigir después de un breve delay
+        setTimeout(() => {
+            window.location.href = newUrl.toString();
+        }, 1000);
+    </script>
+</body>
+</html>
