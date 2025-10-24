@@ -304,11 +304,7 @@ input.disabled {
   color: var(--text-primary);
 }
 
-.perfil-card, .config-section, .infotrend-inner, .archivado-card, .stat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-primary);
-  box-shadow: 0 4px 6px var(--shadow-primary);
-}
+
 
 .perfil-stats, .section-header {
   background: var(--bg-tertiary);

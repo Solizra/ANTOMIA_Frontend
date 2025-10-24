@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Home.css";
 import { supabase } from "../supabaseClient";
 import ojitoImage from "../assets/ojito.png";
 import { apiURL } from "../constants";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 function Home() {
  
@@ -23,6 +24,7 @@ function Home() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [selectedReason, setSelectedReason] = useState('bad_relation');
+  const [expandedTrends, setExpandedTrends] = useState(new Set());
 
   const deleteReasons = [
     { value: 'bad_relation', label: 'Baja calidad de relación' },
@@ -39,6 +41,35 @@ function Home() {
       return isNaN(d?.getTime?.()) ? 0 : d.getTime();
     };
     return [...items].sort((a, b) => parse(b.fechaRelacion) - parse(a.fechaRelacion));
+  };
+
+  // Función para agrupar trends por trendLink
+  const groupTrendsByLink = (trends) => {
+    if (!trends || !Array.isArray(trends)) {
+      return {};
+    }
+    const grouped = {};
+    trends.forEach(trend => {
+      const key = trend.trendLink || trend.trendTitulo || 'unique';
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(trend);
+    });
+    return grouped;
+  };
+
+  // Función para alternar el estado de expansión de un trend
+  const toggleTrendExpansion = (trendKey) => {
+    setExpandedTrends(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(trendKey)) {
+        newSet.delete(trendKey);
+      } else {
+        newSet.add(trendKey);
+      }
+      return newSet;
+    });
   };
 
   useEffect(() => {
@@ -596,54 +627,134 @@ function Home() {
             </tr>
           </thead>
           <tbody>
-            {trends.map((trend, index) => (
-              <tr key={`${trend.id ?? 'noid'}|${trend.newsletterId ?? 'none'}|${trend.trendLink ?? 'nolink'}|${trend.fechaRelacion ?? 'nofecha'}|${index}`}>
-                <td>
-                  <Link to={`/trends/${trend.id || ''}`}>
-                    <button 
-                      className="info-btn-outline"
-                      onClick={() => console.log('InfoTrend: Navegando a trend ID:', trend.id, 'Trend completo:', trend)}
-                    >
-                      <img src={ojitoImage} alt="Ojo" />
-                    </button>
-                  </Link>
-                </td>
-                <td>{trend.trendTitulo || '—'}</td>
-                <td>
-                  {trend.trendLink ? (
-                    <a href={trend.trendLink} target="_blank" rel="noreferrer">{trend.trendLink}</a>
-                  ) : '—'}
-                </td>
-                <td>{trend.newsletterTitulo || '—'}</td>
-                <td>{trend.fechaRelacion ? new Date(trend.fechaRelacion).toLocaleString() : '—'}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="archive-btn"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleArchive(trend); }}
-                    title="Archivar trend"
-                    aria-label="Archivar trend"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M20 6L9 17L4 12" stroke="#28a745" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className="delete-btn"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDeleteModal(trend); }}
-                    title="Eliminar trend"
-                    aria-label="Eliminar trend"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M18 6L6 18M6 6l12 12" stroke="#ff4c4c" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {Object.entries(groupTrendsByLink(trends)).map(([trendKey, trendGroup]) => {
+              if (!trendGroup || !Array.isArray(trendGroup) || trendGroup.length === 0) {
+                return null;
+              }
+              const isExpanded = expandedTrends.has(trendKey);
+              const hasMultipleNewsletters = trendGroup.length > 1;
+              const firstTrend = trendGroup[0];
+              
+              return (
+                <React.Fragment key={trendKey}>
+                  {/* Fila principal del trend */}
+                  <tr className="trend-main-row">
+                    <td>
+                      {hasMultipleNewsletters ? (
+                        <button 
+                          className="dropdown-btn"
+                          onClick={() => toggleTrendExpansion(trendKey)}
+                          title={isExpanded ? "Contraer" : "Expandir"}
+                        >
+                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                        </button>
+                      ) : (
+                        <Link to={`/trends/${firstTrend.id || ''}`}>
+                          <button 
+                            className="info-btn-outline"
+                            onClick={() => console.log('InfoTrend: Navegando a trend ID:', firstTrend.id, 'Trend completo:', firstTrend)}
+                          >
+                            <img src={ojitoImage} alt="Ojo" />
+                          </button>
+                        </Link>
+                      )}
+                    </td>
+                    <td>{firstTrend.trendTitulo || '—'}</td>
+                    <td>
+                      {firstTrend.trendLink ? (
+                        <a href={firstTrend.trendLink} target="_blank" rel="noreferrer">{firstTrend.trendLink}</a>
+                      ) : '—'}
+                    </td>
+                    <td>
+                      {hasMultipleNewsletters ? (
+                        <span className="multiple-newsletters">
+                          {trendGroup.length} newsletter{trendGroup.length > 1 ? 's' : ''}
+                        </span>
+                      ) : (
+                        firstTrend.newsletterTitulo || '—'
+                      )}
+                    </td>
+                    <td>{firstTrend.fechaRelacion ? new Date(firstTrend.fechaRelacion).toLocaleString() : '—'}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="archive-btn"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleArchive(firstTrend); }}
+                        title="Archivar trend"
+                        aria-label="Archivar trend"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M20 6L9 17L4 12" stroke="#28a745" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="delete-btn"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDeleteModal(firstTrend); }}
+                        title="Eliminar trend"
+                        aria-label="Eliminar trend"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M18 6L6 18M6 6l12 12" stroke="#ff4c4c" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                  
+                  {/* Filas expandidas para newsletters individuales */}
+                  {hasMultipleNewsletters && isExpanded && trendGroup && trendGroup.map((trend, index) => (
+                    <tr key={`${trend.id ?? 'noid'}|${trend.newsletterId ?? 'none'}|${index}`} className="trend-expanded-row">
+                      <td>
+                        <Link to={`/trends/${trend.id || ''}`}>
+                          <button 
+                            className="info-btn-outline"
+                            onClick={() => console.log('InfoTrend: Navegando a trend ID:', trend.id, 'Trend completo:', trend)}
+                          >
+                            <img src={ojitoImage} alt="Ojo" />
+                          </button>
+                        </Link>
+                      </td>
+                      <td className="indented-cell">↳ {trend.trendTitulo || '—'}</td>
+                      <td>
+                        {trend.trendLink ? (
+                          <a href={trend.trendLink} target="_blank" rel="noreferrer">{trend.trendLink}</a>
+                        ) : '—'}
+                      </td>
+                      <td>{trend.newsletterTitulo || '—'}</td>
+                      <td>{trend.fechaRelacion ? new Date(trend.fechaRelacion).toLocaleString() : '—'}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="archive-btn"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleArchive(trend); }}
+                          title="Archivar trend"
+                          aria-label="Archivar trend"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 6L9 17L4 12" stroke="#28a745" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="delete-btn"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDeleteModal(trend); }}
+                          title="Eliminar trend"
+                          aria-label="Eliminar trend"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18M6 6l12 12" stroke="#ff4c4c" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
 
