@@ -1,8 +1,8 @@
 .home-container {
   display: flex;
   height: 100vh;
-  background-color: #1a1a1d;
-  color: white;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   font-family: 'Segoe UI', sans-serif;
 }
 
@@ -11,7 +11,7 @@
 
 .sidebar {
   width: 220px;
-  background-color: #2a2a2e;
+  background-color: var(--bg-secondary);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -105,7 +105,7 @@
 .trends-table {
   width: 100%;
   border-collapse: collapse;
-  background-color: #2a2a2e;
+  background-color: var(--bg-card);
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 40px;
@@ -247,7 +247,7 @@
 
 
 .trends-table thead {
-  background-color: #1c1c1e;
+  background-color: var(--bg-tertiary);
 }
 
 
@@ -313,9 +313,9 @@
   margin-top: 40px;
   position: sticky;
   bottom: 0;
-  background: #1a1a1d;
+  background: var(--bg-primary);
   padding: 12px 0 16px 0;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--border-primary);
   z-index: 5;
 }
 
@@ -334,12 +334,12 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #2a2a2e;
+  background-color: var(--bg-secondary);
   border-radius: 20px;
   padding: 8px 12px;
   width: min(720px, 90%);
   margin: 0 auto;
-  box-shadow: 0 6px 28px rgba(0,0,0,0.45);
+  box-shadow: 0 6px 28px var(--shadow-primary);
 }
 
 
@@ -349,7 +349,7 @@
   flex-grow: 1;
   background: transparent;
   border: none;
-  color: white;
+  color: var(--text-primary);
   padding: 8px;
   font-size: 14px;
   outline: none;
@@ -360,7 +360,7 @@
 
 .input-wrapper button {
   background: #25727a;
-  border: 1px solid #3a8d95;
+  border: 1px solid var(--accent-secondary);
   color: #fff;
   font-size: 14px;
   cursor: pointer;
@@ -370,8 +370,8 @@
 
 /* Shared button styles */
 .primary-btn {
-  background: #25727a;
-  border: 1px solid #3a8d95;
+  background: var(--accent-primary);
+  border: 1px solid var(--accent-secondary);
   color: #fff;
   font-size: 14px;
   padding: 6px 12px;
@@ -412,8 +412,8 @@
 
 .btn-secondary {
   background: transparent;
-  color: #3a8d95;
-  border: 1px solid #3a8d95;
+  color: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 14px;
@@ -427,10 +427,10 @@
 }
 
 .btn-secondary:hover {
-  background: #3a8d95;
+  background: var(--accent-primary);
   color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px var(--shadow-primary);
 }
 
 .btn-danger {
@@ -494,8 +494,8 @@
 
 .info-btn-outline {
   background: transparent;      
-  border: 2px solid #76f6ff;
-  color: #76f6ff;
+  border: 2px solid var(--accent-primary);
+  color: var(--accent-primary);
   padding: 4px 8px;
   border-radius: 6px;
   cursor: pointer;
@@ -508,8 +508,8 @@
 
 
 .info-btn-outline:hover {
-  background-color: #76f6ff4b;
-  color: #000;
+  background-color: var(--shadow-accent);
+  color: var(--text-inverse);
 }
 
 
@@ -539,7 +539,7 @@
 .main-title {
   text-align: left;
   margin-bottom: 0;
-  color: #76f6ff;
+  color: var(--accent-primary);
   font-size: 2rem;
   font-weight: 700;
 }
@@ -552,9 +552,9 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: #2a2a2e;
+  background: var(--bg-secondary);
   border-radius: 20px;
-  border: 1px solid #444;
+  border: 1px solid var(--border-primary);
 }
 
 
@@ -569,7 +569,7 @@
 
 .status-text {
   font-size: 0.9rem;
-  color: #ccc;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -598,7 +598,7 @@
   gap: 0.5rem;
   margin-top: 0.5rem;
   padding: 0.5rem;
-  background: #4a9da3;
+  background: var(--accent-primary);
   border-radius: 15px;
   color: white;
   font-size: 0.8rem;
@@ -631,8 +631,8 @@
 /* ===== ESTILOS PARA DESPLEGABLES DE TRENDS ===== */
 .dropdown-btn {
   background: transparent;
-  border: 2px solid #76f6ff;
-  color: #76f6ff;
+  border: 2px solid var(--accent-primary);
+  color: var(--accent-primary);
   padding: 4px 8px;
   border-radius: 6px;
   cursor: pointer;
@@ -645,41 +645,41 @@
 }
 
 .dropdown-btn:hover {
-  background-color: #76f6ff4b;
-  color: #000;
+  background-color: var(--shadow-accent);
+  color: var(--text-inverse);
   transform: scale(1.05);
 }
 
 .multiple-newsletters {
-  color: #76f6ff;
+  color: var(--accent-primary);
   font-weight: 600;
   font-size: 13px;
-  background: rgba(118, 246, 255, 0.1);
+  background: var(--shadow-accent);
   padding: 4px 8px;
   border-radius: 12px;
-  border: 1px solid rgba(118, 246, 255, 0.3);
+  border: 1px solid var(--accent-primary);
 }
 
 .trend-main-row {
-  background-color: #2a2a2e;
+  background-color: var(--bg-card);
 }
 
 .trend-main-row:hover {
-  background-color: #323238;
+  background-color: var(--bg-hover);
 }
 
 .trend-expanded-row {
-  background-color: #1f1f23;
-  border-left: 3px solid #76f6ff;
+  background-color: var(--bg-tertiary);
+  border-left: 3px solid var(--accent-primary);
 }
 
 .trend-expanded-row:hover {
-  background-color: #2a2a2e;
+  background-color: var(--bg-hover);
 }
 
 .indented-cell {
   padding-left: 24px !important;
-  color: #ccc;
+  color: var(--text-tertiary);
   font-style: italic;
 }
 

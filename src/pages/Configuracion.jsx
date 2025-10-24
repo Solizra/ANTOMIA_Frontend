@@ -414,7 +414,7 @@ function Configuracion() {
                     <span>{preferences.timezone}</span>
                   </div>
                   <div className="info-item">
-                    <label>Elementos por página</label>
+                    <label>Trends por página</label>
                     <span>{preferences.itemsPerPage}</span>
                   </div>
                 </div>
@@ -441,13 +441,19 @@ function Configuracion() {
                     </label>
                   </div>
                   <div className="form-group">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={preferences.darkMode}
-                        onChange={(e) => setPreferences({...preferences, darkMode: e.target.checked})}
-                      />
+                    <label className="toggle-label">
                       <span>Modo oscuro</span>
+                      <div className="toggle-switch">
+                        <input
+                          type="checkbox"
+                          id="darkMode"
+                          checked={preferences.darkMode}
+                          onChange={(e) => setPreferences({...preferences, darkMode: e.target.checked})}
+                        />
+                        <label htmlFor="darkMode" className="toggle-slider">
+                          <span className="toggle-slider-button"></span>
+                        </label>
+                      </div>
                     </label>
                   </div>
                   <div className="form-group">
