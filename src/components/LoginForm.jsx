@@ -67,7 +67,11 @@ function LoginForm() {
         />
 
         {errorMsg && <p className="error-msg">{errorMsg}</p>}
-        <a href="/PROYECTO_FINAL-ANTOMIA/forgot-password " style={{ color: '#aaa', textDecoration: 'none', fontSize: '0.9rem' }}>
+        <a 
+          onClick={() => navigate('/forgot-password')} 
+          className="forgot-password-link"
+          style={{ cursor: 'pointer' }}
+        >
           ¿Olvidaste tu contraseña?
         </a>
 

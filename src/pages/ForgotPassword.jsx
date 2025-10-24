@@ -26,7 +26,7 @@ function ForgotPassword() {
         throw error;
       }
 
-      setMessage('Se ha enviado un enlace de recuperación a tu correo electrónico. Revisa tu bandeja de entrada y spam.');
+      setMessage('Se ha enviado un código de verificación a tu correo electrónico. Revisa tu bandeja de entrada y spam.');
     } catch (error) {
       console.error('Error al enviar email de recuperación:', error);
       setError('Error al enviar el email de recuperación. Verifica que el email esté registrado.');
@@ -40,7 +40,7 @@ function ForgotPassword() {
       <div className="forgot-password-card">
         <div className="forgot-password-header">
           <h1>Recuperar Contraseña</h1>
-          <p>Ingresa tu email para recibir un enlace de recuperación</p>
+          <p>Ingresa tu email para recibir un código de verificación</p>
         </div>
 
         <form onSubmit={handleSubmit} className="forgot-password-form">
@@ -51,7 +51,7 @@ function ForgotPassword() {
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
+              placeholder="tu@antom.la"
               required
               disabled={loading}
             />
@@ -62,7 +62,7 @@ function ForgotPassword() {
 
           <div className="form-actions">
             <button type="submit" disabled={loading} className="primary-btn">
-              {loading ? 'Enviando...' : 'Enviar Enlace'}
+              {loading ? 'Enviando...' : 'Enviar Código'}
             </button>
             <button 
               type="button" 

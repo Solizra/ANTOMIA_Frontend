@@ -75,7 +75,17 @@ a {
 }
 
 a:hover {
-  
+  text-decoration: underline;
+}
+
+.forgot-password-link {
+  color: #aaa;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.forgot-password-link:hover {
+  text-decoration: underline;
 }
 
 .error-msg {
