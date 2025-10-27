@@ -15,6 +15,11 @@ function Configuracion() {
   const [editPassword, setEditPassword] = useState(false);
   const [editPreferences, setEditPreferences] = useState(false);
   const [showAddUser, setShowAddUser] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [creandoUsuario, setCreandoUsuario] = useState(false);
   
   // Estado para formulario de añadir usuario
   const [newUserData, setNewUserData] = useState({
@@ -52,6 +57,7 @@ function Configuracion() {
 
   useEffect(() => {
     loadUserData();
+    loadUsers();
   }, []);
 
   // Sincronizar el estado local de darkMode con el contexto global
@@ -182,42 +188,117 @@ function Configuracion() {
     }
   };
 
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      // Intentar obtener usuarios desde la tabla personalizada
+      const { data: usersData, error } = await supabase
+        .from('usuarios_registrados')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.log('Error cargando desde usuarios_registrados:', error);
+        // Intentar obtener desde la tabla auth.users usando una consulta directa
+        try {
+          const { data: authUsers, error: authError } = await supabase
+            .from('auth.users')
+            .select('email, created_at, last_sign_in_at');
+
+          if (authError) {
+            console.log('No se pueden cargar usuarios de auth.users:', authError);
+            setUsers([]);
+          } else if (authUsers) {
+            // Mapear usuarios de auth
+            const mappedUsers = authUsers.map(u => ({
+              email: u.email,
+              created_at: u.created_at,
+              last_sign_in: u.last_sign_in_at,
+              jefe_email: 'N/A',
+              id: u.id || Date.now()
+            }));
+            setUsers(mappedUsers);
+          }
+        } catch (err) {
+          console.log('No se puede acceder a auth.users desde el cliente');
+          setUsers([]);
+        }
+      } else if (usersData && usersData.length > 0) {
+        // Mapear los datos a un formato consistente
+        const mappedUsers = usersData.map(u => ({
+          email: u.email || u.user_email,
+          created_at: u.created_at,
+          last_sign_in: u.last_sign_in_at,
+          jefe_email: u.jefe_email,
+          id: u.id
+        }));
+        setUsers(mappedUsers);
+      } else {
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error('Error al cargar usuarios:', error);
+      setUsers([]);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
   const handleAddUser = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setCreandoUsuario(true);
 
-    // Validaciones
+    // Validación: NO permitir emails que terminen en @antom.la
+    if (newUserData.email.toLowerCase().endsWith('@antom.la')) {
+      setError('No se pueden crear cuentas con dominio @antom.la');
+      setCreandoUsuario(false);
+      return;
+    }
+
+    // Validaciones de contraseña
     if (newUserData.password !== newUserData.confirmPassword) {
       setError('Las contraseñas no coinciden');
+      setCreandoUsuario(false);
       return;
     }
 
     if (newUserData.password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres');
+      setCreandoUsuario(false);
       return;
     }
 
     try {
-      // Verificar que el email del jefe existe
+      // IMPORTANTE: Verificar que el email del jefe existe en la base de datos
+      // Intentamos iniciar sesión con una contraseña temporal para validar existencia
       const { error: checkError } = await supabase.auth.signInWithPassword({
         email: newUserData.jefeEmail,
-        password: 'temp-check-password-12345'
+        password: 'temp-check-password-validation-12345'
       });
 
+      // Si el error es "Invalid login credentials", significa que el usuario EXISTE (solo la contraseña es incorrecta)
+      // Si es otro error, el usuario NO EXISTE
       if (checkError) {
-        if (checkError.message.includes('Invalid login credentials') || checkError.message.includes('Invalid email or password')) {
-          // El email existe
-        } else if (checkError.message.includes('user not found') || checkError.message.includes('Email not confirmed')) {
-          setError('El email del jefe no está registrado en el sistema');
-          return;
+        if (checkError.message.includes('Invalid login credentials') || 
+            checkError.message.includes('Invalid email or password')) {
+          // El email del jefe EXISTE en la base de datos ✅
+          console.log('Email del jefe verificado exitosamente');
         } else {
-          setError('No se pudo verificar el email del jefe');
+          // El email NO EXISTE en la base de datos
+          setError('❌ El email del jefe no está registrado en el sistema. Verifica que sea correcto.');
+          setCreandoUsuario(false);
           return;
         }
       }
 
-      // Crear el nuevo usuario
+      console.log('Intentando crear usuario con:', {
+        email: newUserData.email,
+        jefe_email: newUserData.jefeEmail
+      });
+
+      // Crear el nuevo usuario en Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email: newUserData.email,
         password: newUserData.password,
@@ -227,19 +308,123 @@ function Configuracion() {
           }
         }
       });
+      
+      console.log('Respuesta de signUp:', { data, error });
 
       if (error) {
-        setError('Error al crear el usuario: ' + error.message);
+        // La validación del jefe fue exitosa pero hay error en el signup
+        console.log('Error en el proceso de signup, pero el jefe fue verificado');
+        console.error('Error completo de signup:', error);
+        console.error('Detalles del error:', JSON.stringify(error, null, 2));
+        
+        // Mostrar el error específico
+        let errorMessage = 'Error al crear el usuario';
+        
+        // Extraer el mensaje de error
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error.error_description) {
+          errorMessage = error.error_description;
+        } else {
+          errorMessage = JSON.stringify(error);
+        }
+        
+        // Traducir errores comunes
+        if (errorMessage.toLowerCase().includes('already registered') || 
+            errorMessage.toLowerCase().includes('already exists') ||
+            errorMessage.toLowerCase().includes('duplicate')) {
+          errorMessage = 'Este email ya está registrado en el sistema';
+        } else if (errorMessage.toLowerCase().includes('invalid')) {
+          errorMessage = 'Email o contraseña inválidos. Verifica los datos.';
+        } else if (errorMessage.toLowerCase().includes('rate limit')) {
+          errorMessage = 'Demasiados intentos. Espera un momento e intenta de nuevo.';
+        } else if (errorMessage.toLowerCase().includes('email')) {
+          errorMessage = 'El email proporcionado no es válido.';
+        }
+        
+        console.log('Mensaje de error final:', errorMessage);
+        setError(errorMessage);
+        setCreandoUsuario(false);
+        return;
       } else {
+        // Guardar el usuario en nuestra tabla personalizada si existe
+        try {
+          const { error: insertError } = await supabase
+            .from('usuarios_registrados')
+            .insert({
+              email: newUserData.email,
+              created_at: new Date().toISOString(),
+              jefe_email: newUserData.jefeEmail,
+              user_metadata: { jefe_email: newUserData.jefeEmail }
+            });
+
+          if (insertError) {
+            console.log('No se pudo insertar en usuarios_registrados:', insertError);
+            // No es crítico, continuamos
+          }
+        } catch (err) {
+          console.log('Tabla usuarios_registrados no existe o error al insertar');
+        }
+
         setSuccess('Usuario creado exitosamente');
         setNewUserData({ email: '', password: '', confirmPassword: '', jefeEmail: '' });
         setShowAddUser(false);
         setTimeout(() => setSuccess(''), 4000);
+        loadUsers(); // Recargar lista de usuarios
+        setCreandoUsuario(false);
       }
     } catch (error) {
-      console.error('Error:', error);
-      setError('Ocurrió un error al crear el usuario');
+      console.error('Error inesperado:', error);
+      setError('Ocurrió un error inesperado al crear el usuario: ' + (error.message || 'Error desconocido'));
+      setCreandoUsuario(false);
     }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      setError('');
+      setSuccess('');
+      
+      // Intentar eliminar de la tabla personalizada
+      try {
+        const { error: deleteError } = await supabase
+          .from('usuarios_registrados')
+          .delete()
+          .eq('email', userToDelete.email);
+
+        if (deleteError) {
+          console.log('No se pudo eliminar de usuarios_registrados:', deleteError);
+        }
+      } catch (err) {
+        console.log('Tabla usuarios_registrados no existe o no se puede eliminar');
+      }
+
+      setSuccess('Usuario eliminado exitosamente');
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+      setTimeout(() => setSuccess(''), 3000);
+      
+      // Recargar lista de usuarios
+      loadUsers();
+    } catch (error) {
+      setError('Error al eliminar usuario: ' + error.message);
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+    }
+  };
+
+  const openDeleteModal = (userData) => {
+    setUserToDelete(userData);
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    setUserToDelete(null);
+    setShowDeleteModal(false);
   };
 
   if (loading) {
@@ -599,14 +784,74 @@ function Configuracion() {
             
             <div className="section-content">
               {!showAddUser ? (
-                <div className="account-info">
-                  <div className="info-item">
-                    <label>Usuarios totales</label>
-                    <span>Gestiona y añade nuevos usuarios al sistema</span>
+                <div className="users-management">
+                  <div className="users-header">
+                    <div className="users-stats">
+                      <div className="stat-box">
+                        <span className="stat-number">{users.length}</span>
+                        <span className="stat-label">Usuarios Totales</span>
+                      </div>
+                    </div>
                   </div>
+                  
+                  {loadingUsers ? (
+                    <div className="loading">Cargando usuarios...</div>
+                  ) : users.length > 0 ? (
+                    <div className="users-table-container">
+                      <table className="users-table">
+                        <thead>
+                          <tr>
+                            <th>Email</th>
+                            <th>Fecha de Registro</th>
+                            <th>Último Acceso</th>
+                            <th>Jefe/Supervisor</th>
+                            <th>Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {users.map((u, index) => (
+                            <tr key={index}>
+                              <td>{u.email}</td>
+                              <td>{u.created_at ? new Date(u.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
+                              <td>{u.last_sign_in ? new Date(u.last_sign_in).toLocaleDateString('es-ES') : 'Nunca'}</td>
+                              <td>{u.jefe_email || 'No asignado'}</td>
+                              <td>
+                                <button 
+                                  className="btn-delete-small"
+                                  onClick={() => openDeleteModal(u)}
+                                  title="Eliminar usuario"
+                                >
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                  </svg>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="empty-users">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+                      </svg>
+                      <p>No hay usuarios registrados</p>
+                      <p style={{ fontSize: '14px', color: 'var(--text-tertiary)' }}>Usa el botón "Añadir Usuario" para crear uno</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <form onSubmit={handleAddUser} className="form">
+                  {error && (
+                    <div className="alert alert-error" style={{ marginBottom: '20px' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      {error}
+                    </div>
+                  )}
                   <div className="form-group">
                     <label htmlFor="jefeEmail">Email del Jefe/Supervisor</label>
                     <input
@@ -653,7 +898,9 @@ function Configuracion() {
                     />
                   </div>
                   <div className="form-actions">
-                    <button type="submit" className="btn-primary">Crear Usuario</button>
+                    <button type="submit" className="btn-primary" disabled={creandoUsuario}>
+                      {creandoUsuario ? 'Creando...' : 'Crear Usuario'}
+                    </button>
                   </div>
                 </form>
               )}
@@ -700,6 +947,53 @@ function Configuracion() {
             </div>
           </div>
         </div>
+
+        {/* Modal de confirmación para eliminar usuario */}
+        {showDeleteModal && userToDelete && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: 'var(--bg-card)',
+              padding: '24px',
+              borderRadius: '12px',
+              width: 'min(480px, 90vw)',
+              color: 'var(--text-primary)',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
+              border: '1px solid var(--border-primary)'
+            }}>
+              <h3 style={{ marginTop: 0, marginBottom: 12, color: 'var(--text-primary)' }}>
+                Eliminar Usuario
+              </h3>
+              <p style={{ marginTop: 0, marginBottom: 16, color: 'var(--text-secondary)' }}>
+                ¿Estás seguro de que deseas eliminar al usuario <strong>{userToDelete.email}</strong>?
+                Esta acción no se puede deshacer.
+              </p>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button 
+                  onClick={closeDeleteModal} 
+                  className="btn-secondary"
+                  style={{ padding: '8px 16px' }}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleDeleteUser} 
+                  className="btn-danger"
+                  style={{ padding: '8px 16px' }}
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

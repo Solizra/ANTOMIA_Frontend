@@ -348,6 +348,121 @@
 }
 
 /* Responsive */
+/* Estilos para gestión de usuarios */
+.users-management {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.users-header {
+  margin-bottom: 20px;
+}
+
+.users-stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.stat-box {
+  background: var(--bg-tertiary);
+  padding: 16px 24px;
+  border-radius: 8px;
+  border: 1px solid var(--border-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.users-table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border-primary);
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+}
+
+.users-table thead {
+  background: var(--bg-tertiary);
+}
+
+.users-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--accent-primary);
+  border-bottom: 2px solid var(--border-primary);
+  font-size: 0.9rem;
+}
+
+.users-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.users-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.btn-delete-small {
+  background: transparent;
+  border: none;
+  color: var(--error);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-delete-small:hover {
+  background: rgba(220, 53, 69, 0.1);
+  transform: scale(1.1);
+}
+
+.empty-users {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty-users svg {
+  color: var(--text-tertiary);
+  margin-bottom: 16px;
+}
+
+.empty-users p {
+  margin: 8px 0;
+  font-size: 1rem;
+}
+
 @media (max-width: 768px) {
   .configuracion-container {
     padding: 20px;
@@ -383,5 +498,18 @@
   
   .account-actions {
     justify-content: center;
+  }
+
+  .users-table-container {
+    overflow-x: scroll;
+  }
+
+  .users-table {
+    font-size: 0.85rem;
+  }
+
+  .users-table th,
+  .users-table td {
+    padding: 8px 12px;
   }
 }
