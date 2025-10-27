@@ -14,6 +14,15 @@ function Configuracion() {
   const [editProfile, setEditProfile] = useState(false);
   const [editPassword, setEditPassword] = useState(false);
   const [editPreferences, setEditPreferences] = useState(false);
+  const [showAddUser, setShowAddUser] = useState(false);
+  
+  // Estado para formulario de añadir usuario
+  const [newUserData, setNewUserData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    jefeEmail: ''
+  });
   
   // Estados para datos del usuario
   const [profileData, setProfileData] = useState({
@@ -170,6 +179,66 @@ function Configuracion() {
       window.location.href = '/';
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
+    }
+  };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    // Validaciones
+    if (newUserData.password !== newUserData.confirmPassword) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+
+    if (newUserData.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    try {
+      // Verificar que el email del jefe existe
+      const { error: checkError } = await supabase.auth.signInWithPassword({
+        email: newUserData.jefeEmail,
+        password: 'temp-check-password-12345'
+      });
+
+      if (checkError) {
+        if (checkError.message.includes('Invalid login credentials') || checkError.message.includes('Invalid email or password')) {
+          // El email existe
+        } else if (checkError.message.includes('user not found') || checkError.message.includes('Email not confirmed')) {
+          setError('El email del jefe no está registrado en el sistema');
+          return;
+        } else {
+          setError('No se pudo verificar el email del jefe');
+          return;
+        }
+      }
+
+      // Crear el nuevo usuario
+      const { data, error } = await supabase.auth.signUp({
+        email: newUserData.email,
+        password: newUserData.password,
+        options: {
+          data: {
+            jefe_email: newUserData.jefeEmail
+          }
+        }
+      });
+
+      if (error) {
+        setError('Error al crear el usuario: ' + error.message);
+      } else {
+        setSuccess('Usuario creado exitosamente');
+        setNewUserData({ email: '', password: '', confirmPassword: '', jefeEmail: '' });
+        setShowAddUser(false);
+        setTimeout(() => setSuccess(''), 4000);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Ocurrió un error al crear el usuario');
     }
   };
 
@@ -505,6 +574,86 @@ function Configuracion() {
                   </div>
                   <div className="form-actions">
                     <button type="submit" className="btn-primary">Guardar preferencias</button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+
+          {/* Sección de Administración de Usuarios */}
+          <div className="config-section">
+            <div className="section-header">
+              <div className="section-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <h3>Administración de Usuarios</h3>
+              </div>
+              <button 
+                className="btn-secondary"
+                onClick={() => setShowAddUser(!showAddUser)}
+              >
+                {showAddUser ? 'Cancelar' : 'Añadir Usuario'}
+              </button>
+            </div>
+            
+            <div className="section-content">
+              {!showAddUser ? (
+                <div className="account-info">
+                  <div className="info-item">
+                    <label>Usuarios totales</label>
+                    <span>Gestiona y añade nuevos usuarios al sistema</span>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleAddUser} className="form">
+                  <div className="form-group">
+                    <label htmlFor="jefeEmail">Email del Jefe/Supervisor</label>
+                    <input
+                      type="email"
+                      id="jefeEmail"
+                      value={newUserData.jefeEmail}
+                      onChange={(e) => setNewUserData({...newUserData, jefeEmail: e.target.value})}
+                      placeholder="jefe@antom.la"
+                      required
+                    />
+                    <small>Email de un supervisor ya registrado</small>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="newUserEmail">Email del Nuevo Usuario</label>
+                    <input
+                      type="email"
+                      id="newUserEmail"
+                      value={newUserData.email}
+                      onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
+                      placeholder="nuevo@antom.la"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="newUserPassword">Contraseña</label>
+                    <input
+                      type="password"
+                      id="newUserPassword"
+                      value={newUserData.password}
+                      onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+                      placeholder="Mínimo 6 caracteres"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="newUserConfirmPassword">Confirmar Contraseña</label>
+                    <input
+                      type="password"
+                      id="newUserConfirmPassword"
+                      value={newUserData.confirmPassword}
+                      onChange={(e) => setNewUserData({...newUserData, confirmPassword: e.target.value})}
+                      placeholder="Repite la contraseña"
+                      required
+                    />
+                  </div>
+                  <div className="form-actions">
+                    <button type="submit" className="btn-primary">Crear Usuario</button>
                   </div>
                 </form>
               )}

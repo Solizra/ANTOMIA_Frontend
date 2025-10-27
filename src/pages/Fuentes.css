@@ -53,8 +53,7 @@
 .fuentes-table tr:hover { background-color: #333338; }
 
 .delete-btn { 
- 
- 
+  border:none;
   color: #fff; 
   cursor: pointer; 
   font-size: 14px; 

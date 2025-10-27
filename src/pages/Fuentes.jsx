@@ -110,7 +110,7 @@ function Fuentes() {
               <th>Fuente</th>
               <th>Categoría</th>
               <th>Estado</th>
-              <th>Acciones</th>
+              <th>Eliminar</th>
             </tr>
           </thead>
           <tbody>
