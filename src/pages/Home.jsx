@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import "./Home.css";
 import { supabase } from "../supabaseClient";
 import ojitoImage from "../assets/ojito.png";
-import { apiURL, githubActions } from "../constants";
+import { apiURL } from "../constants";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 function Home() {
@@ -27,12 +27,7 @@ function Home() {
   const [expandedTrends, setExpandedTrends] = useState(new Set());
   const [triggerLoading, setTriggerLoading] = useState(false);
   const [triggerMsg, setTriggerMsg] = useState('');
-  const [showGhConfig, setShowGhConfig] = useState(false);
-  const [ghOwner, setGhOwner] = useState('');
-  const [ghRepo, setGhRepo] = useState('');
-  const [ghWorkflow, setGhWorkflow] = useState('auto-update.yml');
-  const [ghRef, setGhRef] = useState('main');
-  const [ghToken, setGhToken] = useState('');
+  
 
   const deleteReasons = [
     { value: 'bad_relation', label: 'Baja calidad de relación' },
@@ -127,17 +122,7 @@ function Home() {
     })();
   }, []);
 
-  // Cargar configuración guardada de GitHub al montar
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('ghActionsConfig') || '{}');
-      if (saved.owner) setGhOwner(saved.owner);
-      if (saved.repo) setGhRepo(saved.repo);
-      if (saved.workflowFile) setGhWorkflow(saved.workflowFile);
-      if (saved.ref) setGhRef(saved.ref);
-      if (saved.token) setGhToken(saved.token);
-    } catch {}
-  }, []);
+  
 
   // Eliminado: auto-análisis que poblaba tabla sin depender de la BDD
 
@@ -366,70 +351,21 @@ function Home() {
     }
   };
 
-  const getGhConfig = () => {
-    const envCfg = githubActions || {};
-    let saved = {};
-    try { saved = JSON.parse(localStorage.getItem('ghActionsConfig') || '{}'); } catch {}
-    return {
-      owner: saved.owner || envCfg.owner || '',
-      repo: saved.repo || envCfg.repo || '',
-      workflowFile: saved.workflowFile || envCfg.workflowFile || 'auto-update.yml',
-      ref: saved.ref || envCfg.ref || 'main',
-      token: saved.token || envCfg.token || ''
-    };
-  };
-
-  const saveGhConfig = () => {
-    const payload = { owner: ghOwner.trim(), repo: ghRepo.trim(), workflowFile: ghWorkflow.trim() || 'auto-update.yml', ref: ghRef.trim() || 'main', token: ghToken.trim() };
-    localStorage.setItem('ghActionsConfig', JSON.stringify(payload));
-    setShowGhConfig(false);
-  };
+  
 
   const triggerBackendWorkflow = async () => {
     try {
       setTriggerMsg('');
       setTriggerLoading(true);
-
-      // Intentar endpoint del backend primero; si falla, continuar a fallback
-      let backendTried = false;
-      try {
-        if (githubActions.backendTriggerEndpoint) {
-          backendTried = true;
-          const res = await fetch(githubActions.backendTriggerEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-          });
-          if (res.ok) {
-            setTriggerMsg('✅ Acción solicitada al backend');
-            return;
-          }
-        }
-      } catch (_) {
-        // Ignorar y hacer fallback
-      }
-
-      // Fallback: dispara directamente GitHub Actions si hay token y repo
-      const { owner, repo, workflowFile, ref, token } = getGhConfig();
-      if (!owner || !repo || !workflowFile || !token) {
-        setShowGhConfig(true);
-        const reason = backendTried ? 'backend y fallback no disponibles' : 'falta configuración de fallback';
-        throw new Error(`No se pudo activar el workflow (${reason}). Configura GitHub Actions y vuelve a intentar.`);
-      }
-      const ghUrl = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowFile}/dispatches`;
-      const res = await fetch(ghUrl, {
+      const res = await fetch(`${apiURL}/api/github/trigger-backend`, {
         method: 'POST',
-        headers: {
-          'Accept': 'application/vnd.github+json',
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ ref })
+        headers: { 'Content-Type': 'application/json' }
       });
       if (!res.ok) {
         const txt = await res.text().catch(() => '');
-        throw new Error(`GitHub API error: ${res.status} ${txt}`);
+        throw new Error(`Backend respondió ${res.status}. ${txt || 'Endpoint no disponible'}`);
       }
-      setTriggerMsg('✅ Workflow de GitHub Actions disparado');
+      setTriggerMsg('✅ Acción solicitada al backend');
     } catch (e) {
       console.error('❌ Error al disparar workflow:', e);
       setTriggerMsg('❌ No se pudo activar el backend');
@@ -944,25 +880,7 @@ function Home() {
           </div>
         </div>
       )}
-      {showGhConfig && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#2a2a2e', padding: 20, borderRadius: 8, width: 'min(520px, 92vw)', color: '#fff', boxShadow: '0 10px 30px rgba(0,0,0,0.4)' }}>
-            <h3 style={{ marginTop: 0, marginBottom: 12 }}>Configurar GitHub Actions</h3>
-            <p style={{ marginTop: 0, marginBottom: 12, color: '#aaa', fontSize: 12 }}>Se usará para activar el backend si no hay endpoint en el backend.</p>
-            <div style={{ display: 'grid', gap: 10 }}>
-              <input placeholder="Owner (ej: solizra)" value={ghOwner} onChange={(e) => setGhOwner(e.target.value)} style={{ padding: '10px', background: '#1f1f23', color: '#fff', border: '1px solid #3a3a3f', borderRadius: 6 }} />
-              <input placeholder="Repo (ej: ANTOMIA_Backend)" value={ghRepo} onChange={(e) => setGhRepo(e.target.value)} style={{ padding: '10px', background: '#1f1f23', color: '#fff', border: '1px solid #3a3a3f', borderRadius: 6 }} />
-              <input placeholder="Workflow file (auto-update.yml)" value={ghWorkflow} onChange={(e) => setGhWorkflow(e.target.value)} style={{ padding: '10px', background: '#1f1f23', color: '#fff', border: '1px solid #3a3a3f', borderRadius: 6 }} />
-              <input placeholder="Ref/branch (main)" value={ghRef} onChange={(e) => setGhRef(e.target.value)} style={{ padding: '10px', background: '#1f1f23', color: '#fff', border: '1px solid #3a3a3f', borderRadius: 6 }} />
-              <input placeholder="GitHub token (workflow scope)" value={ghToken} onChange={(e) => setGhToken(e.target.value)} style={{ padding: '10px', background: '#1f1f23', color: '#fff', border: '1px solid #3a3a3f', borderRadius: 6 }} />
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 14 }}>
-              <button className="secondary-btn" onClick={() => setShowGhConfig(false)}>Cancelar</button>
-              <button className="primary-btn" onClick={saveGhConfig}>Guardar</button>
-            </div>
-          </div>
-        </div>
-      )}
+      
 
       {showNonClimatePanel && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
