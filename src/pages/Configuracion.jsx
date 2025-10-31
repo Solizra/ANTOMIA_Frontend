@@ -492,10 +492,6 @@ function Configuracion() {
                     <span>{profileData.email}</span>
                   </div>
                   <div className="info-item">
-                    <label>Empresa</label>
-                    <span>{profileData.company || 'No especificada'}</span>
-                  </div>
-                  <div className="info-item">
                     <label>Rol</label>
                     <span>{profileData.role || 'No especificado'}</span>
                   </div>
@@ -645,12 +641,6 @@ function Configuracion() {
                     <label>Notificaciones</label>
                     <span className={preferences.notifications ? 'status-active' : 'status-inactive'}>
                       {preferences.notifications ? 'Activadas' : 'Desactivadas'}
-                    </span>
-                  </div>
-                  <div className="info-item">
-                    <label>Resumen por email</label>
-                    <span className={preferences.emailDigest ? 'status-active' : 'status-inactive'}>
-                      {preferences.emailDigest ? 'Activado' : 'Desactivado'}
                     </span>
                   </div>
                   <div className="info-item">
