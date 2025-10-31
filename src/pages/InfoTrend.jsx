@@ -21,7 +21,6 @@ function InfoTrend() {
           const trendData = await response.json();
           const mappedTrend = {
             titulo: trendData.Título_del_Trend || `Trend ${id}`,
-            descripcion: trendData.Resumen_Fama || '—',
             razonamientoIA: trendData.Analisis_relacion || '—',
             fecha: trendData.Fecha_Relación ? new Date(trendData.Fecha_Relación).toLocaleString() : '—',
             fuente: trendData.Link_del_Trend || '—',

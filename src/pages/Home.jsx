@@ -27,6 +27,8 @@ function Home() {
   const [expandedTrends, setExpandedTrends] = useState(new Set());
   const [triggerLoading, setTriggerLoading] = useState(false);
   const [triggerMsg, setTriggerMsg] = useState('');
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
   
 
   const deleteReasons = [
@@ -79,6 +81,15 @@ function Home() {
     const user = JSON.parse(localStorage.getItem("user"));
     if (!user) {
       navigate("/"); // si no hay sesión, redirige a login
+    }
+    // Cargar preferencia de itemsPerPage desde localStorage
+    try {
+      const prefs = JSON.parse(localStorage.getItem('userPreferences') || '{}');
+      if (prefs && typeof prefs.itemsPerPage === 'number' && prefs.itemsPerPage > 0) {
+        setItemsPerPage(prefs.itemsPerPage);
+      }
+    } catch (_) {
+      // ignorar errores de parseo
     }
     // Cargar siempre desde la BDD al iniciar
     (async () => {
@@ -349,6 +360,75 @@ function Home() {
         console.error('❌ Error cargando trends desde BDD:', error);
       }
     }
+  };
+
+  // Sincronizar itemsPerPage cuando cambien las preferencias en otras pestañas/ventanas
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'userPreferences') {
+        try {
+          const prefs = JSON.parse(e.newValue || '{}');
+          if (prefs && typeof prefs.itemsPerPage === 'number' && prefs.itemsPerPage > 0) {
+            setItemsPerPage(prefs.itemsPerPage);
+            setCurrentPage(1);
+          }
+        } catch (_) {
+          // ignorar
+        }
+      }
+    };
+    const onFocus = () => {
+      try {
+        const prefs = JSON.parse(localStorage.getItem('userPreferences') || '{}');
+        if (prefs && typeof prefs.itemsPerPage === 'number' && prefs.itemsPerPage > 0) {
+          setItemsPerPage((prev) => (prev !== prefs.itemsPerPage ? prefs.itemsPerPage : prev));
+        }
+      } catch (_) {}
+    };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
+  // Reajustar página si cambia el total o itemsPerPage
+  useEffect(() => {
+    setCurrentPage((prev) => (prev < 1 ? 1 : prev));
+  }, [itemsPerPage]);
+
+  // Preparar datos paginados por grupo de trend (clave única por link/título)
+  const groupedTrends = groupTrendsByLink(trends);
+  const groupKeys = Object.keys(groupedTrends);
+  const totalGroups = groupKeys.length;
+  const totalPages = Math.max(1, Math.ceil(totalGroups / (itemsPerPage || 20)));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * (itemsPerPage || 20);
+  const endIndex = startIndex + (itemsPerPage || 20);
+  const paginatedKeys = groupKeys.slice(startIndex, endIndex);
+
+  const goToPage = (page) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
+  const goPrev = () => goToPage(safeCurrentPage - 1);
+  const goNext = () => goToPage(safeCurrentPage + 1);
+
+  const getPageNumbers = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages = [];
+    const add = (p) => pages.push(p);
+    add(1);
+    const left = Math.max(2, safeCurrentPage - 1);
+    const right = Math.min(totalPages - 1, safeCurrentPage + 1);
+    if (left > 2) pages.push('...');
+    for (let p = left; p <= right; p++) add(p);
+    if (right < totalPages - 1) pages.push('...');
+    add(totalPages);
+    return pages;
   };
 
   
@@ -668,7 +748,8 @@ function Home() {
             </tr>
           </thead>
           <tbody>
-            {Object.entries(groupTrendsByLink(trends)).map(([trendKey, trendGroup]) => {
+            {paginatedKeys.map((trendKey) => {
+              const trendGroup = groupedTrends[trendKey];
               if (!trendGroup || !Array.isArray(trendGroup) || trendGroup.length === 0) {
                 return null;
               }
@@ -798,6 +879,44 @@ function Home() {
             })}
           </tbody>
         </table>
+
+        {/* Controles de paginación minimalistas centrados */}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 16 }}>
+          <button
+            onClick={goPrev}
+            disabled={safeCurrentPage <= 1}
+            className="btn-secondary"
+            style={{ padding: '6px 10px', opacity: safeCurrentPage <= 1 ? 0.6 : 1 }}
+            aria-label="Página anterior"
+          >
+            {'<'}
+          </button>
+          {getPageNumbers().map((p, i) => (
+            p === '...'
+              ? (
+                <span key={`dots-${i}`} style={{ color: '#aaa', padding: '6px 8px' }}>…</span>
+              ) : (
+                <button
+                  key={`page-${p}`}
+                  onClick={() => goToPage(p)}
+                  className={p === safeCurrentPage ? 'primary-btn' : 'btn-secondary'}
+                  style={{ padding: '6px 10px' }}
+                  aria-current={p === safeCurrentPage ? 'page' : undefined}
+                >
+                  {p}
+                </button>
+              )
+          ))}
+          <button
+            onClick={goNext}
+            disabled={safeCurrentPage >= totalPages}
+            className="btn-secondary"
+            style={{ padding: '6px 10px', opacity: safeCurrentPage >= totalPages ? 0.6 : 1 }}
+            aria-label="Página siguiente"
+          >
+            {'>'}
+          </button>
+        </div>
 
         <div className="footer">
           <p style={{ fontWeight: '600' }}>Pega el link de una noticia climatech</p>

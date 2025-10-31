@@ -273,6 +273,8 @@
 /* Botones */
 .btn-primary {
   background: #25727a;
+  width: 13%;
+  text-align: center;
   border: 1px solid #3a8d95;
   color: #fff;
   font-size: 14px;
