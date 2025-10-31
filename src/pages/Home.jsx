@@ -353,24 +353,29 @@ function Home() {
       setTriggerMsg('');
       setTriggerLoading(true);
 
-      // Preferir endpoint del backend si existe
-      if (githubActions.backendTriggerEndpoint) {
-        const res = await fetch(githubActions.backendTriggerEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        if (!res.ok) {
-          const txt = await res.text().catch(() => '');
-          throw new Error(`Backend trigger failed: ${res.status} ${txt}`);
+      // Intentar endpoint del backend primero; si falla, continuar a fallback
+      let backendTried = false;
+      try {
+        if (githubActions.backendTriggerEndpoint) {
+          backendTried = true;
+          const res = await fetch(githubActions.backendTriggerEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          if (res.ok) {
+            setTriggerMsg('✅ Acción solicitada al backend');
+            return;
+          }
         }
-        setTriggerMsg('✅ Acción de encendido solicitada al backend');
-        return;
+      } catch (_) {
+        // Ignorar y hacer fallback
       }
 
       // Fallback: dispara directamente GitHub Actions si hay token y repo
       const { owner, repo, workflowFile, ref, token } = githubActions;
       if (!owner || !repo || !workflowFile || !token) {
-        throw new Error('Falta configuración para disparo directo de GitHub Actions');
+        const reason = backendTried ? 'backend y fallback no disponibles' : 'falta configuración de fallback';
+        throw new Error(`No se pudo activar el workflow (${reason}). Define VITE_GH_* o expone el endpoint en backend.`);
       }
       const ghUrl = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowFile}/dispatches`;
       const res = await fetch(ghUrl, {
@@ -389,8 +394,7 @@ function Home() {
       setTriggerMsg('✅ Workflow de GitHub Actions disparado');
     } catch (e) {
       console.error('❌ Error al disparar workflow:', e);
-      setTriggerMsg('❌ No se pudo disparar el workflow');
-      alert(e.message || 'Error al disparar workflow');
+      setTriggerMsg('❌ No se pudo activar el backend');
     } finally {
       setTriggerLoading(false);
       setTimeout(() => setTriggerMsg(''), 4000);
@@ -634,8 +638,8 @@ function Home() {
             <button
               onClick={triggerBackendWorkflow}
               disabled={triggerLoading}
-              className="secondary-btn"
-              style={{ marginLeft: '8px', padding: '6px 10px' }}
+              className="primary-btn"
+              style={{ marginLeft: '10px' }}
               title="Despertar backend ejecutando workflow"
             >
               {triggerLoading ? 'Activando…' : 'Activar backend'}
