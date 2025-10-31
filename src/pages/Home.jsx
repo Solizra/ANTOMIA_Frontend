@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import "./Home.css";
 import { supabase } from "../supabaseClient";
 import ojitoImage from "../assets/ojito.png";
-import { apiURL } from "../constants";
+import { apiURL, githubActions } from "../constants";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 function Home() {
@@ -25,6 +25,8 @@ function Home() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [selectedReason, setSelectedReason] = useState('bad_relation');
   const [expandedTrends, setExpandedTrends] = useState(new Set());
+  const [triggerLoading, setTriggerLoading] = useState(false);
+  const [triggerMsg, setTriggerMsg] = useState('');
 
   const deleteReasons = [
     { value: 'bad_relation', label: 'Baja calidad de relación' },
@@ -346,6 +348,55 @@ function Home() {
     }
   };
 
+  const triggerBackendWorkflow = async () => {
+    try {
+      setTriggerMsg('');
+      setTriggerLoading(true);
+
+      // Preferir endpoint del backend si existe
+      if (githubActions.backendTriggerEndpoint) {
+        const res = await fetch(githubActions.backendTriggerEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          throw new Error(`Backend trigger failed: ${res.status} ${txt}`);
+        }
+        setTriggerMsg('✅ Acción de encendido solicitada al backend');
+        return;
+      }
+
+      // Fallback: dispara directamente GitHub Actions si hay token y repo
+      const { owner, repo, workflowFile, ref, token } = githubActions;
+      if (!owner || !repo || !workflowFile || !token) {
+        throw new Error('Falta configuración para disparo directo de GitHub Actions');
+      }
+      const ghUrl = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowFile}/dispatches`;
+      const res = await fetch(ghUrl, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/vnd.github+json',
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ref })
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`GitHub API error: ${res.status} ${txt}`);
+      }
+      setTriggerMsg('✅ Workflow de GitHub Actions disparado');
+    } catch (e) {
+      console.error('❌ Error al disparar workflow:', e);
+      setTriggerMsg('❌ No se pudo disparar el workflow');
+      alert(e.message || 'Error al disparar workflow');
+    } finally {
+      setTriggerLoading(false);
+      setTimeout(() => setTriggerMsg(''), 4000);
+    }
+  };
+
   // Fallback: refresco automático cada 60s desde la BDD (solo si no hay SSE)
   useEffect(() => {
     let isMounted = true;
@@ -567,7 +618,7 @@ function Home() {
              <span className="status-text">
                {sseConnected ? 'Actualización en tiempo real' : 'Modo offline'}
              </span>
-             {!sseConnected && (
+            {!sseConnected && (
                <span className="backend-status" style={{ 
                  marginLeft: '10px', 
                  padding: '2px 8px', 
@@ -580,6 +631,18 @@ function Home() {
                  ⚠️ Backend Offline
                </span>
              )}
+            <button
+              onClick={triggerBackendWorkflow}
+              disabled={triggerLoading}
+              className="secondary-btn"
+              style={{ marginLeft: '8px', padding: '6px 10px' }}
+              title="Despertar backend ejecutando workflow"
+            >
+              {triggerLoading ? 'Activando…' : 'Activar backend'}
+            </button>
+            {triggerMsg && (
+              <span style={{ marginLeft: 8, fontSize: 12, color: '#aaa' }}>{triggerMsg}</span>
+            )}
            <button 
               onClick={async () => {
                 try {
