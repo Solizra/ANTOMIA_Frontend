@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
 import './Configuracion.css';
 
 function Configuracion() {
+  const navigate = useNavigate();
   const { isDarkMode, setTheme } = useTheme();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
@@ -71,6 +74,20 @@ function Configuracion() {
       if (error) throw error;
       
       setUser(user);
+      const allowedEmails = [
+        'sassonindiana@gmail.com',
+        '48460067@est.ort.edu.ar',
+        'ruben@antom.la',
+        'solizraa@gmail.com',
+        'paula@antom.la'
+      ];
+      const isAuthorized = !!user?.email && allowedEmails.includes(user.email.toLowerCase());
+      setAuthorized(isAuthorized);
+      if (!isAuthorized) {
+        // Si no está autorizado, redirigir fuera de configuración
+        navigate('/home');
+        return;
+      }
       setProfileData({
         fullName: user?.user_metadata?.full_name || '',
         email: user?.email || '',
@@ -434,6 +451,20 @@ function Configuracion() {
       </div>
     );
   }
+  
+  if (!authorized) {
+    return (
+      <div className="configuracion-container">
+        <div className="configuracion-inner" style={{ textAlign: 'center', padding: '40px' }}>
+          <h1 className="configuracion-title">Acceso no autorizado</h1>
+          <p className="configuracion-subtitle">No tienes permisos para acceder a esta sección.</p>
+          <button className="btn-primary" onClick={() => navigate('/home')} style={{ marginTop: 16 }}>
+            Volver al Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="configuracion-container">
@@ -775,51 +806,25 @@ function Configuracion() {
             <div className="section-content">
               {!showAddUser ? (
                 <div className="users-management">
-                  <div className="users-header">
-                    <div className="users-stats">
-                      <div className="stat-box">
-                        <span className="stat-number">{users.length}</span>
-                        <span className="stat-label">Usuarios Totales</span>
-                      </div>
-                    </div>
-                  </div>
-                  
                   {loadingUsers ? (
                     <div className="loading">Cargando usuarios...</div>
                   ) : users.length > 0 ? (
-                    <div className="users-table-container">
-                      <table className="users-table">
-                        <thead>
-                          <tr>
-                            <th>Email</th>
-                            <th>Fecha de Registro</th>
-                            <th>Último Acceso</th>
-                            <th>Jefe/Supervisor</th>
-                            <th>Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {users.map((u, index) => (
-                            <tr key={index}>
-                              <td>{u.email}</td>
-                              <td>{u.created_at ? new Date(u.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
-                              <td>{u.last_sign_in ? new Date(u.last_sign_in).toLocaleDateString('es-ES') : 'Nunca'}</td>
-                              <td>{u.jefe_email || 'No asignado'}</td>
-                              <td>
-                                <button 
-                                  className="btn-delete-small"
-                                  onClick={() => openDeleteModal(u)}
-                                  title="Eliminar usuario"
-                                >
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                  </svg>
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {users.map((u, index) => (
+                        <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '10px 12px' }}>
+                          <span style={{ color: 'var(--text-primary)' }}>{u.email}</span>
+                          <button 
+                            className="btn-delete-small"
+                            onClick={() => openDeleteModal(u)}
+                            title="Eliminar usuario"
+                            style={{ color: '#ff4c4c' }}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="empty-users">
@@ -828,7 +833,6 @@ function Configuracion() {
                         <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
                       </svg>
                       <p>No hay usuarios registrados</p>
-                      <p style={{ fontSize: '14px', color: 'var(--text-tertiary)' }}>Usa el botón "Añadir Usuario" para crear uno</p>
                     </div>
                   )}
                 </div>
