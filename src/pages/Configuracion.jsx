@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { apiURL, usersApiPaths } from '../constants';
 import { useTheme } from '../contexts/ThemeContext';
 import './Configuracion.css';
 
@@ -60,8 +61,13 @@ function Configuracion() {
 
   useEffect(() => {
     loadUserData();
-    loadUsers();
   }, []);
+
+  useEffect(() => {
+    if (authorized) {
+      loadUsers();
+    }
+  }, [authorized]);
 
   // Sincronizar el estado local de darkMode con el contexto global
   useEffect(() => {
@@ -83,11 +89,6 @@ function Configuracion() {
       ];
       const isAuthorized = !!user?.email && allowedEmails.includes(user.email.toLowerCase());
       setAuthorized(isAuthorized);
-      if (!isAuthorized) {
-        // Si no está autorizado, redirigir fuera de configuración
-        navigate('/home');
-        return;
-      }
       setProfileData({
         fullName: user?.user_metadata?.full_name || '',
         email: user?.email || '',
@@ -208,51 +209,34 @@ function Configuracion() {
   const loadUsers = async () => {
     setLoadingUsers(true);
     try {
-      // Intentar obtener usuarios desde la tabla personalizada
-      const { data: usersData, error } = await supabase
-        .from('usuarios_registrados')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.log('Error cargando desde usuarios_registrados:', error);
-        // Intentar obtener desde la tabla auth.users usando una consulta directa
+      let mappedUsers = [];
+      const candidates = Array.isArray(usersApiPaths) && usersApiPaths.length ? usersApiPaths : ['/api/users'];
+      for (const p of candidates) {
+        const url = `${apiURL}${p}`;
         try {
-          const { data: authUsers, error: authError } = await supabase
-            .from('auth.users')
-            .select('email, created_at, last_sign_in_at');
-
-          if (authError) {
-            console.log('No se pueden cargar usuarios de auth.users:', authError);
-            setUsers([]);
-          } else if (authUsers) {
-            // Mapear usuarios de auth
-            const mappedUsers = authUsers.map(u => ({
-              email: u.email,
-              created_at: u.created_at,
-              last_sign_in: u.last_sign_in_at,
-              jefe_email: 'N/A',
-              id: u.id || Date.now()
-            }));
-            setUsers(mappedUsers);
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json().catch(() => []);
+            if (Array.isArray(data)) {
+              mappedUsers = data.map(u => ({ email: u.email, jefe_email: u.jefe_email, id: u.id }));
+              break;
+            }
           }
-        } catch (err) {
-          console.log('No se puede acceder a auth.users desde el cliente');
-          setUsers([]);
-        }
-      } else if (usersData && usersData.length > 0) {
-        // Mapear los datos a un formato consistente
-        const mappedUsers = usersData.map(u => ({
-          email: u.email || u.user_email,
-          created_at: u.created_at,
-          last_sign_in: u.last_sign_in_at,
-          jefe_email: u.jefe_email,
-          id: u.id
-        }));
-        setUsers(mappedUsers);
-      } else {
-        setUsers([]);
+        } catch {}
       }
+
+      let localList = [];
+      try { localList = JSON.parse(localStorage.getItem('managedUsers') || '[]'); } catch {}
+      const localUsers = Array.isArray(localList) ? localList.map(email => ({ email })) : [];
+
+      const seen = new Set();
+      const merged = [...mappedUsers, ...localUsers].filter(u => {
+        const key = (u.email || '').toLowerCase();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      setUsers(merged);
     } catch (error) {
       console.error('Error al cargar usuarios:', error);
       setUsers([]);
@@ -288,110 +272,52 @@ function Configuracion() {
     }
 
     try {
-      // IMPORTANTE: Verificar que el email del jefe existe en la base de datos
-      // Intentamos iniciar sesión con una contraseña temporal para validar existencia
-      const { error: checkError } = await supabase.auth.signInWithPassword({
-        email: newUserData.jefeEmail,
-        password: 'temp-check-password-validation-12345'
-      });
+      const email = newUserData.email.trim().toLowerCase();
+      const jefe = newUserData.jefeEmail.trim();
 
-      // Si el error es "Invalid login credentials", significa que el usuario EXISTE (solo la contraseña es incorrecta)
-      // Si es otro error, el usuario NO EXISTE
-      if (checkError) {
-        if (checkError.message.includes('Invalid login credentials') || 
-            checkError.message.includes('Invalid email or password')) {
-          // El email del jefe EXISTE en la base de datos ✅
-          console.log('Email del jefe verificado exitosamente');
-        } else {
-          // El email NO EXISTE en la base de datos
-          setError('❌ El email del jefe no está registrado en el sistema. Verifica que sea correcto.');
-          setCreandoUsuario(false);
-          return;
-        }
+      // Llamar al backend (apiURL) probando rutas candidatas
+      const body = JSON.stringify({ email, password: newUserData.password, jefe_email: jefe });
+      const postCandidates = Array.isArray(usersApiPaths) && usersApiPaths.length ? usersApiPaths : ['/api/users'];
+      let createdOk = false;
+      for (const p of postCandidates) {
+        const url = `${apiURL}${p}`;
+        try {
+          const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+          if (res.ok) { createdOk = true; break; }
+        } catch {}
       }
-
-      console.log('Intentando crear usuario con:', {
-        email: newUserData.email,
-        jefe_email: newUserData.jefeEmail
-      });
-
-      // Crear el nuevo usuario en Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email: newUserData.email,
-        password: newUserData.password,
-        options: {
-          data: {
-            jefe_email: newUserData.jefeEmail
-          }
-        }
-      });
-      
-      console.log('Respuesta de signUp:', { data, error });
-
-      if (error) {
-        // La validación del jefe fue exitosa pero hay error en el signup
-        console.log('Error en el proceso de signup, pero el jefe fue verificado');
-        console.error('Error completo de signup:', error);
-        console.error('Detalles del error:', JSON.stringify(error, null, 2));
-        
-        // Mostrar el error específico
-        let errorMessage = 'Error al crear el usuario';
-        
-        // Extraer el mensaje de error
-        if (error.message) {
-          errorMessage = error.message;
-        } else if (typeof error === 'string') {
-          errorMessage = error;
-        } else if (error.error_description) {
-          errorMessage = error.error_description;
-        } else {
-          errorMessage = JSON.stringify(error);
-        }
-        
-        // Traducir errores comunes
-        if (errorMessage.toLowerCase().includes('already registered') || 
-            errorMessage.toLowerCase().includes('already exists') ||
-            errorMessage.toLowerCase().includes('duplicate')) {
-          errorMessage = 'Este email ya está registrado en el sistema';
-        } else if (errorMessage.toLowerCase().includes('invalid')) {
-          errorMessage = 'Email o contraseña inválidos. Verifica los datos.';
-        } else if (errorMessage.toLowerCase().includes('rate limit')) {
-          errorMessage = 'Demasiados intentos. Espera un momento e intenta de nuevo.';
-        } else if (errorMessage.toLowerCase().includes('email')) {
-          errorMessage = 'El email proporcionado no es válido.';
-        }
-        
-        console.log('Mensaje de error final:', errorMessage);
-        setError(errorMessage);
+      if (!createdOk) {
+        setError('No se pudo agregar el usuario.');
         setCreandoUsuario(false);
         return;
-      } else {
-        // Guardar el usuario en nuestra tabla personalizada si existe
-        try {
-          const { error: insertError } = await supabase
-            .from('usuarios_registrados')
-            .insert({
-              email: newUserData.email,
-              created_at: new Date().toISOString(),
-              jefe_email: newUserData.jefeEmail,
-              user_metadata: { jefe_email: newUserData.jefeEmail }
-            });
-
-          if (insertError) {
-            console.log('No se pudo insertar en usuarios_registrados:', insertError);
-            // No es crítico, continuamos
-          }
-        } catch (err) {
-          console.log('Tabla usuarios_registrados no existe o error al insertar');
-        }
-
-        setSuccess('Usuario creado exitosamente');
-        setNewUserData({ email: '', password: '', confirmPassword: '', jefeEmail: '' });
-        setShowAddUser(false);
-        setTimeout(() => setSuccess(''), 4000);
-        loadUsers(); // Recargar lista de usuarios
-        setCreandoUsuario(false);
       }
+
+      // Guardar en localStorage como respaldo
+      try {
+        let local = [];
+        try { local = JSON.parse(localStorage.getItem('managedUsers') || '[]'); } catch {}
+        if (!Array.isArray(local)) local = [];
+        if (!local.includes(email)) local.unshift(email);
+        localStorage.setItem('managedUsers', JSON.stringify(local));
+      } catch {}
+
+      // Actualizar UI inmediata
+      const added = { email, jefe_email: jefe };
+      setUsers((prev) => {
+        const seen = new Set();
+        return [added, ...prev].filter(u => {
+          const k = (u.email || '').toLowerCase();
+          if (!k || seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+      });
+
+      setSuccess('Usuario creado exitosamente');
+      setNewUserData({ email: '', password: '', confirmPassword: '', jefeEmail: '' });
+      setShowAddUser(false);
+      setTimeout(() => setSuccess(''), 4000);
+      setCreandoUsuario(false);
     } catch (error) {
       console.error('Error inesperado:', error);
       setError('Ocurrió un error inesperado al crear el usuario: ' + (error.message || 'Error desconocido'));
@@ -406,27 +332,38 @@ function Configuracion() {
       setError('');
       setSuccess('');
       
-      // Intentar eliminar de la tabla personalizada
-      try {
-        const { error: deleteError } = await supabase
-          .from('usuarios_registrados')
-          .delete()
-          .eq('email', userToDelete.email);
-
-        if (deleteError) {
-          console.log('No se pudo eliminar de usuarios_registrados:', deleteError);
-        }
-      } catch (err) {
-        console.log('Tabla usuarios_registrados no existe o no se puede eliminar');
+      // Eliminar en backend (apiURL) probando rutas candidatas
+      const qs = `?email=${encodeURIComponent(userToDelete.email)}`;
+      const delCandidates = Array.isArray(usersApiPaths) && usersApiPaths.length ? usersApiPaths : ['/api/users'];
+      let deletedOk = false;
+      for (const p of delCandidates) {
+        const url = `${apiURL}${p}${qs}`;
+        try {
+          const res = await fetch(url, { method: 'DELETE' });
+          if (res.ok) { deletedOk = true; break; }
+        } catch {}
+      }
+      if (!deletedOk) {
+        setError('No se pudo eliminar el usuario.');
+        setShowDeleteModal(false);
+        setUserToDelete(null);
+        return;
       }
 
+      // Eliminar también del localStorage
+      try {
+        let local = [];
+        try { local = JSON.parse(localStorage.getItem('managedUsers') || '[]'); } catch {}
+        if (!Array.isArray(local)) local = [];
+        local = local.filter(e => (e || '').toLowerCase() !== (userToDelete.email || '').toLowerCase());
+        localStorage.setItem('managedUsers', JSON.stringify(local));
+      } catch {}
+
       setSuccess('Usuario eliminado exitosamente');
+      setUsers((prev) => prev.filter(u => (u.email || '').toLowerCase() !== (userToDelete.email || '').toLowerCase()));
       setShowDeleteModal(false);
       setUserToDelete(null);
       setTimeout(() => setSuccess(''), 3000);
-      
-      // Recargar lista de usuarios
-      loadUsers();
     } catch (error) {
       setError('Error al eliminar usuario: ' + error.message);
       setShowDeleteModal(false);
@@ -452,19 +389,7 @@ function Configuracion() {
     );
   }
   
-  if (!authorized) {
-    return (
-      <div className="configuracion-container">
-        <div className="configuracion-inner" style={{ textAlign: 'center', padding: '40px' }}>
-          <h1 className="configuracion-title">Acceso no autorizado</h1>
-          <p className="configuracion-subtitle">No tienes permisos para acceder a esta sección.</p>
-          <button className="btn-primary" onClick={() => navigate('/home')} style={{ marginTop: 16 }}>
-            Volver al Home
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // La página de Configuración es visible para todos; la sección de administración solo para autorizados
 
   return (
     <div className="configuracion-container">
@@ -796,7 +721,8 @@ function Configuracion() {
             </div>
           </div>
 
-          {/* Sección de Administración de Usuarios */}
+          {/* Sección de Administración de Usuarios (solo autorizados) */}
+          {authorized && (
           <div className="config-section">
             <div className="section-header">
               <div className="section-title">
@@ -910,6 +836,7 @@ function Configuracion() {
               )}
             </div>
           </div>
+          )}
 
           {/* Sección de Cuenta */}
           <div className="config-section">
