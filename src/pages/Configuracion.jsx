@@ -451,9 +451,19 @@ function Configuracion() {
       </div>
     );
   }
-
+  
   if (!authorized) {
-    return null;
+    return (
+      <div className="configuracion-container">
+        <div className="configuracion-inner" style={{ textAlign: 'center', padding: '40px' }}>
+          <h1 className="configuracion-title">Acceso no autorizado</h1>
+          <p className="configuracion-subtitle">No tienes permisos para acceder a esta sección.</p>
+          <button className="btn-primary" onClick={() => navigate('/home')} style={{ marginTop: 16 }}>
+            Volver al Home
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
