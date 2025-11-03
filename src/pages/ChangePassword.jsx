@@ -17,45 +17,70 @@ function ChangePassword() {
   const [error, setError] = useState('');
   const [isResetFlow, setIsResetFlow] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState('');
+  const [sessionEstablished, setSessionEstablished] = useState(false);
 
   useEffect(() => {
-    // Verificar si venimos del password reset
-    if (location.state?.isResetFlow && location.state?.verified) {
-      setIsResetFlow(true);
-      setMessage('Enlace verificado correctamente. Puedes establecer tu nueva contraseña.');
-      return;
-    }
+    const establishSession = async () => {
+      // Verificar si venimos del password reset
+      if (location.state?.isResetFlow && location.state?.verified) {
+        setIsResetFlow(true);
+        setSessionEstablished(true);
+        setMessage('Enlace verificado correctamente. Puedes establecer tu nueva contraseña.');
+        return;
+      }
 
-    // Verificar si venimos de un flujo de reset de contraseña
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    const type = searchParams.get('type');
-    
-    console.log('URL params:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
-    
-    // Detectar si es un flujo de recuperación de contraseña
-    if (accessToken && refreshToken && type === 'recovery') {
-      setIsResetFlow(true);
-      // Establecer la sesión con los tokens del email
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      }).then(({ data, error }) => {
-        if (error) {
-          console.error('Error al establecer sesión:', error);
-          setError('Error al procesar el enlace de recuperación. Por favor, solicita un nuevo enlace.');
-        } else {
-          console.log('Sesión establecida correctamente:', data);
-          setMessage('Enlace verificado correctamente. Puedes establecer tu nueva contraseña.');
+      // Verificar si venimos de un flujo de reset de contraseña
+      let accessToken = searchParams.get('access_token');
+      let refreshToken = searchParams.get('refresh_token');
+      let type = searchParams.get('type');
+
+      // Si no están en query params, buscar en el hash (para HashRouter)
+      if (!accessToken || !refreshToken) {
+        try {
+          const hashParams = new URLSearchParams(location.hash.substring(1));
+          accessToken = accessToken || hashParams.get('access_token');
+          refreshToken = refreshToken || hashParams.get('refresh_token');
+          type = type || hashParams.get('type');
+        } catch (e) {
+          console.log('No se encontraron parámetros en el hash');
         }
+      }
+      
+      console.log('ChangePassword - URL params:', { 
+        hasAccessToken: !!accessToken, 
+        hasRefreshToken: !!refreshToken, 
+        type 
       });
-    } else if (type === 'recovery') {
-      // Si es tipo recovery pero no hay tokens, puede ser que venga del callback
-      setIsResetFlow(true);
-      setMessage('Procesando enlace de recuperación...');
-    } else {
-      // Verificar si el usuario está logueado (flujo normal desde perfil)
-      const checkUser = async () => {
+      
+      // Detectar si es un flujo de recuperación de contraseña
+      if (accessToken && refreshToken && type === 'recovery') {
+        setIsResetFlow(true);
+        try {
+          // Establecer la sesión con los tokens del email
+          const { data, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (sessionError) {
+            console.error('Error al establecer sesión:', sessionError);
+            setError('Error al procesar el enlace de recuperación. Por favor, solicita un nuevo enlace.');
+            return;
+          }
+
+          console.log('Sesión establecida correctamente:', data);
+          setSessionEstablished(true);
+          setMessage('Enlace verificado correctamente. Puedes establecer tu nueva contraseña.');
+        } catch (err) {
+          console.error('Error inesperado al establecer sesión:', err);
+          setError('Error al procesar el enlace de recuperación. Por favor, solicita un nuevo enlace.');
+        }
+      } else if (type === 'recovery') {
+        // Si es tipo recovery pero no hay tokens, puede ser que venga del callback
+        setIsResetFlow(true);
+        setMessage('Procesando enlace de recuperación...');
+      } else {
+        // Verificar si el usuario está logueado (flujo normal desde perfil)
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           // Si no hay usuario y no es un flujo de reset, redirigir al login
@@ -63,10 +88,12 @@ function ChangePassword() {
           return;
         }
         setIsResetFlow(false);
-      };
-      checkUser();
-    }
-  }, [searchParams, navigate, location.state]);
+        setSessionEstablished(true);
+      }
+    };
+
+    establishSession();
+  }, [searchParams, navigate, location]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -111,6 +138,11 @@ function ChangePassword() {
     setMessage('');
 
     try {
+      // Verificar que la sesión esté establecida
+      if (!sessionEstablished) {
+        throw new Error('Por favor espera mientras se verifica tu sesión...');
+      }
+
       // Validaciones
       if (!isResetFlow && !formData.currentPassword) {
         throw new Error('Debes ingresar tu contraseña actual');
@@ -125,6 +157,12 @@ function ChangePassword() {
         throw new Error(passwordError);
       }
 
+      // Verificar que aún tengamos sesión antes de actualizar
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('La sesión ha expirado. Por favor, intenta de nuevo.');
+      }
+
       if (isResetFlow) {
         // Flujo de reset de contraseña
         const { error: updateError } = await supabase.auth.updateUser({
@@ -137,6 +175,8 @@ function ChangePassword() {
 
         setMessage('Contraseña actualizada exitosamente. Serás redirigido al login.');
         setTimeout(() => {
+          // Cerrar sesión después de cambiar la contraseña para forzar login con la nueva
+          supabase.auth.signOut();
           navigate('/');
         }, 2000);
       } else {
@@ -236,8 +276,8 @@ function ChangePassword() {
           {message && <div className="success-message">{message}</div>}
 
           <div className="form-actions">
-            <button type="submit" disabled={loading} className="primary-btn">
-              {loading ? 'Actualizando...' : (isResetFlow ? 'Establecer Contraseña' : 'Actualizar Contraseña')}
+            <button type="submit" disabled={loading || !sessionEstablished} className="primary-btn">
+              {loading ? 'Actualizando...' : !sessionEstablished ? 'Verificando...' : (isResetFlow ? 'Establecer Contraseña' : 'Actualizar Contraseña')}
             </button>
             {!isResetFlow && (
               <button 

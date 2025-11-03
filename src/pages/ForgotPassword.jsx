@@ -20,7 +20,7 @@ function ForgotPassword() {
     try {
       // Usar la URL actual del navegador para la redirección
       const currentOrigin = window.location.origin;
-      const redirectUrl = `${currentOrigin}/password-reset`;
+      const redirectUrl = `${currentOrigin}/ANTOMIA_Frontend/#/new-password`;
       
       console.log('Redirigiendo a:', redirectUrl);
       
