@@ -29,8 +29,7 @@ function Configuracion() {
   const [newUserData, setNewUserData] = useState({
     email: '',
     password: '',
-    confirmPassword: '',
-    jefeEmail: ''
+    confirmPassword: ''
   });
   
   // Estados para datos del usuario
@@ -81,10 +80,9 @@ function Configuracion() {
       
       setUser(user);
       const allowedEmails = [
+        'solizraa@gmail.com',
         'sassonindiana@gmail.com',
         '48460067@est.ort.edu.ar',
-        'ruben@antom.la',
-        'solizraa@gmail.com',
         'paula@antom.la'
       ];
       const isAuthorized = !!user?.email && allowedEmails.includes(user.email.toLowerCase());
@@ -251,9 +249,10 @@ function Configuracion() {
     setSuccess('');
     setCreandoUsuario(true);
 
-    // Validación: NO permitir emails que terminen en @antom.la
-    if (newUserData.email.toLowerCase().endsWith('@antom.la')) {
-      setError('No se pueden crear cuentas con dominio @antom.la');
+    // Validación básica de email
+    const emailLower = (newUserData.email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailLower)) {
+      setError('Ingresa un email válido');
       setCreandoUsuario(false);
       return;
     }
@@ -272,11 +271,10 @@ function Configuracion() {
     }
 
     try {
-      const email = newUserData.email.trim().toLowerCase();
-      const jefe = newUserData.jefeEmail.trim();
+      const email = emailLower;
 
-      // Llamar al backend (apiURL) probando rutas candidatas
-      const body = JSON.stringify({ email, password: newUserData.password, jefe_email: jefe });
+      // 1) Intentar vía backend (usa Service Role en el servidor)
+      const body = JSON.stringify({ email, password: newUserData.password });
       const postCandidates = Array.isArray(usersApiPaths) && usersApiPaths.length ? usersApiPaths : ['/api/users'];
       let createdOk = false;
       for (const p of postCandidates) {
@@ -286,10 +284,36 @@ function Configuracion() {
           if (res.ok) { createdOk = true; break; }
         } catch {}
       }
+
+      // 2) Fallback: intentar crear desde el cliente con Supabase SDK
       if (!createdOk) {
-        setError('No se pudo agregar el usuario.');
-        setCreandoUsuario(false);
-        return;
+        const { data: { session: adminSession } } = await supabase.auth.getSession();
+
+        const { origin, pathname } = window.location;
+        const emailRedirectTo = `${origin}${pathname}#/auth/callback`;
+
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password: newUserData.password,
+          options: {
+            emailRedirectTo
+          }
+        });
+        if (signUpError) {
+          throw new Error(signUpError.message || 'No se pudo crear el usuario');
+        }
+
+        // Restaurar sesión del admin si se cambió la sesión al nuevo usuario
+        if (adminSession?.access_token && adminSession?.refresh_token) {
+          try {
+            await supabase.auth.setSession({
+              access_token: adminSession.access_token,
+              refresh_token: adminSession.refresh_token
+            });
+          } catch {}
+        }
+
+        createdOk = true;
       }
 
       // Guardar en localStorage como respaldo
@@ -302,7 +326,7 @@ function Configuracion() {
       } catch {}
 
       // Actualizar UI inmediata
-      const added = { email, jefe_email: jefe };
+      const added = { email };
       setUsers((prev) => {
         const seen = new Set();
         return [added, ...prev].filter(u => {
@@ -314,7 +338,7 @@ function Configuracion() {
       });
 
       setSuccess('Usuario creado exitosamente');
-      setNewUserData({ email: '', password: '', confirmPassword: '', jefeEmail: '' });
+      setNewUserData({ email: '', password: '', confirmPassword: '' });
       setShowAddUser(false);
       setTimeout(() => setSuccess(''), 4000);
       setCreandoUsuario(false);
@@ -773,25 +797,13 @@ function Configuracion() {
                     </div>
                   )}
                   <div className="form-group">
-                    <label htmlFor="jefeEmail">Email del Jefe/Supervisor</label>
-                    <input
-                      type="email"
-                      id="jefeEmail"
-                      value={newUserData.jefeEmail}
-                      onChange={(e) => setNewUserData({...newUserData, jefeEmail: e.target.value})}
-                      placeholder="jefe@antom.la"
-                      required
-                    />
-                    <small>Email de un supervisor ya registrado</small>
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="newUserEmail">Email del Nuevo Usuario</label>
+                    <label htmlFor="newUserEmail">Email del nuevo usuario</label>
                     <input
                       type="email"
                       id="newUserEmail"
                       value={newUserData.email}
                       onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
-                      placeholder="nuevo@antom.la"
+                      placeholder="usuario@dominio.com"
                       required
                     />
                   </div>
@@ -807,7 +819,7 @@ function Configuracion() {
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="newUserConfirmPassword">Confirmar Contraseña</label>
+                    <label htmlFor="newUserConfirmPassword">Confirmar contraseña</label>
                     <input
                       type="password"
                       id="newUserConfirmPassword"

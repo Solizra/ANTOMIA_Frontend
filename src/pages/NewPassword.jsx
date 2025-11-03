@@ -16,25 +16,40 @@ function NewPassword() {
   const [error, setError] = useState('');
   const [passwordStrength, setPasswordStrength] = useState('');
   const [sessionEstablished, setSessionEstablished] = useState(false);
+  const [emailForResend, setEmailForResend] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   // Establecer sesión cuando el componente se monte si vienen tokens de la URL
   useEffect(() => {
     const establishSession = async () => {
-      // Intentar obtener tokens tanto de searchParams como del hash
+      // Intentar obtener tokens desde múltiples fuentes (HashRouter puede generar doble hash)
       let accessToken = searchParams.get('access_token');
       let refreshToken = searchParams.get('refresh_token');
       let type = searchParams.get('type');
 
-      // Si no están en query params, buscar en el hash (para HashRouter)
-      if (!accessToken || !refreshToken) {
+      const parseFromRawHash = () => {
         try {
-          const hashParams = new URLSearchParams(location.hash.substring(1));
-          accessToken = accessToken || hashParams.get('access_token');
-          refreshToken = refreshToken || hashParams.get('refresh_token');
-          type = type || hashParams.get('type');
-        } catch (e) {
-          console.log('No se encontraron parámetros en el hash');
+          const rawHash = window.location.hash || '';
+          // En HashRouter la URL puede lucir como .../#/new-password#access_token=...
+          const lastHashIndex = rawHash.lastIndexOf('#');
+          const fragment = lastHashIndex >= 0 ? rawHash.substring(lastHashIndex + 1) : rawHash.substring(1);
+          const params = new URLSearchParams(fragment);
+          return {
+            accessToken: params.get('access_token'),
+            refreshToken: params.get('refresh_token'),
+            type: params.get('type')
+          };
+        } catch {
+          return { accessToken: null, refreshToken: null, type: null };
         }
+      };
+
+      if (!accessToken || !refreshToken) {
+        const fromHash = parseFromRawHash();
+        accessToken = accessToken || fromHash.accessToken;
+        refreshToken = refreshToken || fromHash.refreshToken;
+        type = type || fromHash.type;
       }
 
       console.log('NewPassword - URL params:', { 
@@ -70,9 +85,8 @@ function NewPassword() {
         if (user) {
           setSessionEstablished(true);
         } else {
-          // Si no hay usuario ni tokens, redirigir al login
-          setError('No se encontró sesión válida. Por favor, solicita un nuevo enlace de recuperación.');
-          setTimeout(() => navigate('/'), 3000);
+          // Mostrar opción para reenviar enlace en lugar de redirigir
+          setError('No se encontró sesión válida. Puedes solicitar un nuevo enlace de recuperación.');
         }
       }
     };
@@ -163,6 +177,27 @@ function NewPassword() {
     }
   };
 
+  const handleResend = async () => {
+    try {
+      setResendLoading(true);
+      setResendMessage('');
+      if (!emailForResend) {
+        throw new Error('Ingresa tu email para reenviar el enlace');
+      }
+      const { origin, pathname } = window.location;
+      const redirectUrl = `${origin}${pathname}#/new-password`;
+      const { error: resendError } = await supabase.auth.resetPasswordForEmail(emailForResend, {
+        redirectTo: redirectUrl,
+      });
+      if (resendError) throw resendError;
+      setResendMessage('Enlace enviado. Revisa tu correo y spam.');
+    } catch (err) {
+      setError(err.message || 'Error al reenviar el enlace');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   return (
     <div className="change-password-container">
       <div className="change-password-card">
@@ -222,6 +257,30 @@ function NewPassword() {
             </button>
           </div>
         </form>
+
+        {!sessionEstablished && (
+          <div style={{ marginTop: '24px' }}>
+            <h3>¿No funcionó el enlace?</h3>
+            <p>Ingresa tu email y te enviaremos un nuevo enlace de recuperación.</p>
+            <div className="form-group">
+              <label htmlFor="resendEmail">Email</label>
+              <input
+                type="email"
+                id="resendEmail"
+                value={emailForResend}
+                onChange={(e) => setEmailForResend(e.target.value)}
+                placeholder="tu@antom.la"
+                disabled={resendLoading}
+              />
+            </div>
+            {resendMessage && <div className="success-message">{resendMessage}</div>}
+            <div className="form-actions">
+              <button type="button" className="primary-btn" disabled={resendLoading} onClick={handleResend}>
+                {resendLoading ? 'Enviando...' : 'Reenviar enlace'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

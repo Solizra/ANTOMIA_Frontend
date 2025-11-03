@@ -18,9 +18,9 @@ function ForgotPassword() {
     setMessage('');
 
     try {
-      // Usar la URL actual del navegador para la redirección
-      const currentOrigin = window.location.origin;
-      const redirectUrl = `${currentOrigin}/ANTOMIA_Frontend/#/new-password`;
+      // Construir redirección compatible con localhost y GitHub Pages (HashRouter)
+      const { origin, pathname } = window.location;
+      const redirectUrl = `${origin}${pathname}#/new-password`;
       
       console.log('Redirigiendo a:', redirectUrl);
       
