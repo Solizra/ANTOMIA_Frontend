@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { apiURL, usersApiPaths } from '../constants';
+import { apiURL, usersApiPaths, USERS_PRIMARY_PATH } from '../constants';
 import { useTheme } from '../contexts/ThemeContext';
 import './Configuracion.css';
 
@@ -24,6 +24,8 @@ function Configuracion() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [creandoUsuario, setCreandoUsuario] = useState(false);
+  const [workingUsersPath, setWorkingUsersPath] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   
   // Estado para formulario de añadir usuario
   const [newUserData, setNewUserData] = useState({
@@ -217,6 +219,7 @@ function Configuracion() {
             const data = await res.json().catch(() => []);
             if (Array.isArray(data)) {
               mappedUsers = data.map(u => ({ email: u.email, jefe_email: u.jefe_email, id: u.id }));
+              setWorkingUsersPath(p);
               break;
             }
           }
@@ -358,47 +361,94 @@ function Configuracion() {
       
       // Eliminar en backend (apiURL) probando rutas candidatas y variantes
       const email = (userToDelete.email || '').trim().toLowerCase();
-      const delCandidates = Array.isArray(usersApiPaths) && usersApiPaths.length ? usersApiPaths : ['/api/users'];
-      const variantsForPath = (p) => {
-        const base = `${apiURL}${p}`;
-        const enc = encodeURIComponent(email);
-        return [
-          { method: 'DELETE', url: `${base}?email=${enc}` },
-          { method: 'DELETE', url: `${base}/${enc}` },
-          { method: 'DELETE', url: base, body: JSON.stringify({ email }), headers: { 'Content-Type': 'application/json' } },
-          { method: 'POST',   url: `${base}/delete`, body: JSON.stringify({ email }), headers: { 'Content-Type': 'application/json' } },
-        ];
-      };
+      // Si ya descubrimos un path que funciona al listar, úsalo para borrar para evitar 404s
+      setDeleting(true);
+
+      // Usar un único path primario para evitar errores 404/401/400 repetitivos
+      const basePath = workingUsersPath || USERS_PRIMARY_PATH;
+      const base = `${apiURL}${basePath}`;
+      const enc = encodeURIComponent(email);
+
+      // Estrategia: intentar 2 variantes máximas para minimizar ruido
+      const attempts = [
+        { method: 'DELETE', url: `${base}?email=${enc}` },
+        { method: 'DELETE', url: base, body: JSON.stringify({ email }), headers: { 'Content-Type': 'application/json' } },
+      ];
 
       let deletedOk = false;
-      for (const p of delCandidates) {
-        const attempts = variantsForPath(p);
-        for (const attempt of attempts) {
-          try {
-            const res = await fetch(attempt.url, {
-              method: attempt.method,
-              headers: attempt.headers,
-              body: attempt.body
-            });
-            if (res.ok) { deletedOk = true; break; }
-          } catch {}
+      let lastStatus = null;
+      let lastText = '';
+      for (const attempt of attempts) {
+        try {
+          const res = await fetch(attempt.url, {
+            method: attempt.method,
+            headers: attempt.headers,
+            body: attempt.body
+          });
+          lastStatus = res.status;
+          try { lastText = await res.text(); } catch { lastText = ''; }
+          if (res.ok) { deletedOk = true; break; }
+        } catch (e) {
+          lastStatus = -1;
+          lastText = e?.message || 'Network error';
         }
-        if (deletedOk) break;
       }
 
       // Si falló todo lo anterior, intentamos una ruta genérica final
       if (!deletedOk) {
         try {
-          const res = await fetch(`${apiURL}/api/usuarios_registrados?email=${encodeURIComponent(email)}`, { method: 'DELETE' });
-          if (res.ok) deletedOk = true;
-        } catch {}
+          const res = await fetch(`${apiURL}${USERS_PRIMARY_PATH}?email=${encodeURIComponent(email)}`, { method: 'DELETE' });
+          if (res.ok) {
+            deletedOk = true;
+          } else {
+            lastStatus = res.status;
+            try { lastText = await res.text(); } catch { lastText = ''; }
+          }
+        } catch (e) {
+          lastStatus = -1;
+          lastText = e?.message || 'Network error';
+        }
       }
 
       if (!deletedOk) {
-        setError('No se pudo eliminar el usuario en el servidor.');
-        setShowDeleteModal(false);
-        setUserToDelete(null);
-        return;
+        const responseLower = (lastText || '').toLowerCase();
+        const notFoundByStatus = lastStatus === 404;
+        const notFoundByMessage = responseLower.includes('not found') || responseLower.includes('no existe') || responseLower.includes('no encontrado');
+        const backendMissingTable =
+          responseLower.includes('relation "users" does not exist') ||
+          responseLower.includes('relation \'users\' does not exist') ||
+          responseLower.includes('relation users does not exist');
+        if (notFoundByStatus || notFoundByMessage) {
+          // Avisar y limpiar de la lista local para mantener la UI consistente
+          setSuccess('El usuario no existe en la base de datos. Lo removimos de la lista local.');
+          try {
+            let local = [];
+            try { local = JSON.parse(localStorage.getItem('managedUsers') || '[]'); } catch {}
+            if (!Array.isArray(local)) local = [];
+            local = local.filter(e => (e || '').toLowerCase() !== email);
+            localStorage.setItem('managedUsers', JSON.stringify(local));
+          } catch {}
+          setUsers((prev) => prev.filter(u => (u.email || '').toLowerCase() !== email));
+          setShowDeleteModal(false);
+          setUserToDelete(null);
+          setTimeout(() => setSuccess(''), 3000);
+          setDeleting(false);
+          return;
+        } else if (backendMissingTable) {
+          // Error de backend mal configurado: avisar claramente y mantener UI
+          setError('Error en el servidor: la tabla de usuarios no existe. Contactá al administrador para corregir la base de datos.');
+          setShowDeleteModal(false);
+          setUserToDelete(null);
+          setDeleting(false);
+          return;
+        } else {
+          console.error('❌ Error al eliminar usuario', { pathTried: basePath, status: lastStatus, response: lastText });
+          setError(`No se pudo eliminar el usuario en el servidor (status ${lastStatus || 'desconocido'}).`);
+          setShowDeleteModal(false);
+          setUserToDelete(null);
+          setDeleting(false);
+          return;
+        }
       }
 
       // Eliminar también del localStorage
@@ -415,10 +465,12 @@ function Configuracion() {
       setShowDeleteModal(false);
       setUserToDelete(null);
       setTimeout(() => setSuccess(''), 3000);
+      setDeleting(false);
     } catch (error) {
       setError('Error al eliminar usuario: ' + error.message);
       setShowDeleteModal(false);
       setUserToDelete(null);
+      setDeleting(false);
     }
   };
 
@@ -937,18 +989,20 @@ function Configuracion() {
               </p>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button 
-                  onClick={closeDeleteModal} 
+                  onClick={deleting ? undefined : closeDeleteModal} 
                   className="btn-secondary"
-                  style={{ padding: '8px 16px' }}
+                  style={{ padding: '8px 16px', opacity: deleting ? 0.7 : 1, cursor: deleting ? 'not-allowed' : 'pointer' }}
+                  disabled={deleting}
                 >
                   Cancelar
                 </button>
                 <button 
-                  onClick={handleDeleteUser} 
+                  onClick={deleting ? undefined : handleDeleteUser} 
                   className="btn-danger"
-                  style={{ padding: '8px 16px' }}
+                  style={{ padding: '8px 16px', opacity: deleting ? 0.7 : 1, cursor: deleting ? 'not-allowed' : 'pointer' }}
+                  disabled={deleting}
                 >
-                  Eliminar
+                  {deleting ? 'Eliminando...' : 'Eliminar'}
                 </button>
               </div>
             </div>
