@@ -18,6 +18,9 @@ function Home() {
   const [nonClimate, setNonClimate] = useState(false);
   const [nonClimateReason, setNonClimateReason] = useState('');
   const [showNonClimatePanel, setShowNonClimatePanel] = useState(false);
+  const [manualAnalysisData, setManualAnalysisData] = useState(null);
+  const [forcingClimatech, setForcingClimatech] = useState(false);
+  const [forceClimateFeedback, setForceClimateFeedback] = useState({ error: '', success: '' });
   const [sseConnected, setSseConnected] = useState(false);
   const [procesandoNoticias, setProcesandoNoticias] = useState(false);
   const [trendsCreados, setTrendsCreados] = useState(0);
@@ -592,13 +595,16 @@ function Home() {
     setNonClimate(false);
     setNonClimateReason('');
     setShowNonClimatePanel(false);
-    if (!input.trim()) return;
+    setManualAnalysisData(null);
+    setForceClimateFeedback({ error: '', success: '' });
+    const trimmedInput = input.trim();
+    if (!trimmedInput) return;
     try {
       setLoading(true);
       const res = await fetch(`${apiURL}/api/Newsletter/analizar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ input: trimmedInput }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error((data && (data.error || data.message)) || 'Error en el análisis');
@@ -610,6 +616,8 @@ function Home() {
         const motivo = (data.razonClimatech || data.motivoSinRelacion || '').trim();
         setNonClimate(true);
         setNonClimateReason(motivo);
+        setManualAnalysisData({ input: trimmedInput, analysis: data });
+        setShowNonClimatePanel(true);
         setError('');
         setLoading(false);
         return;
@@ -643,6 +651,7 @@ function Home() {
         setSuccess('');
         setNonClimate(false);
         setNonClimateReason('');
+        setManualAnalysisData(null);
       }
       
     } catch (e) {
@@ -650,6 +659,72 @@ function Home() {
       setError(e.message || 'Error inesperado');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenNonClimatePanel = () => {
+    setForceClimateFeedback({ error: '', success: '' });
+    setShowNonClimatePanel(true);
+  };
+
+  const handleCloseNonClimatePanel = () => {
+    setShowNonClimatePanel(false);
+    setForceClimateFeedback({ error: '', success: '' });
+  };
+
+  const handleForceClimatech = async () => {
+    if (forcingClimatech || !manualAnalysisData) return;
+    setForceClimateFeedback({ error: '', success: '' });
+    setForcingClimatech(true);
+
+    try {
+      const forceRes = await fetch(`${apiURL}/api/Newsletter/forzarClimatech`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: manualAnalysisData.input,
+          analysis: manualAnalysisData.analysis,
+        }),
+      });
+      const forceData = await forceRes.json().catch(() => null);
+      if (!forceRes.ok) {
+        throw new Error((forceData && (forceData.error || forceData.message)) || 'No se pudo forzar la noticia');
+      }
+
+      try {
+        await fetch(`${apiURL}/api/Feedback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trendId: manualAnalysisData?.analysis?.trendId ?? null,
+            action: 'manual_force_climatech',
+            reason: 'user_override',
+            feedback: 'negative',
+            trendData: {
+              input: manualAnalysisData.input,
+              analysis: manualAnalysisData.analysis,
+            },
+            timestamp: new Date().toISOString(),
+          }),
+        });
+      } catch (feedbackError) {
+        console.warn('⚠️ No se pudo enviar feedback de forzado Climatech:', feedbackError);
+      }
+
+      await cargarTrendsDesdeBDD();
+
+      setForceClimateFeedback({ error: '', success: 'La noticia se marcó manualmente como Climatech.' });
+      setSuccess('La noticia se marcó manualmente como Climatech.');
+      setTimeout(() => setSuccess(''), 4000);
+      setNonClimate(false);
+      setNonClimateReason('');
+      setShowNonClimatePanel(false);
+      setManualAnalysisData(null);
+    } catch (error) {
+      console.error('❌ Error al forzar noticia como Climatech:', error);
+      setForceClimateFeedback({ error: error.message || 'No se pudo forzar la noticia como Climatech', success: '' });
+    } finally {
+      setForcingClimatech(false);
     }
   };
 
@@ -968,7 +1043,7 @@ function Home() {
               </span>
               {nonClimateReason && (
                 <button
-                  onClick={() => setShowNonClimatePanel(true)}
+                  onClick={handleOpenNonClimatePanel}
                   className="primary-btn"
                   style={{ padding: '6px 10px' }}
                 >
@@ -1012,7 +1087,7 @@ function Home() {
               <button
                 className="delete-btn"
                 style={{ width: 36, height: 36, display: 'grid', placeItems: 'center', padding: 0 }}
-                onClick={() => setShowNonClimatePanel(false)}
+                onClick={handleCloseNonClimatePanel}
                 title="Cerrar"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1024,6 +1099,34 @@ function Home() {
             <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
               {nonClimateReason || 'No se proporcionó un motivo específico.'}
             </div>
+            {manualAnalysisData && (
+              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{ margin: 0, fontSize: 13, color: '#cfcfd1' }}>
+                  Si consideras que la noticia sí es Climatech, puedes forzar la clasificación manualmente. Esto registrará un feedback negativo para mejorar el modelo.
+                </p>
+                {forceClimateFeedback.error && (
+                  <span style={{ color: '#ff6b6b', fontSize: 13 }}>
+                    {forceClimateFeedback.error}
+                  </span>
+                )}
+                {forceClimateFeedback.success && (
+                  <span style={{ color: '#4ade80', fontSize: 13 }}>
+                    {forceClimateFeedback.success}
+                  </span>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={handleForceClimatech}
+                    className="primary-btn"
+                    disabled={forcingClimatech}
+                    style={{ minWidth: 200 }}
+                  >
+                    {forcingClimatech ? 'Forzando...' : 'Forzar como Climatech'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
