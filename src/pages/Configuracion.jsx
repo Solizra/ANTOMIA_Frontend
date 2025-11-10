@@ -356,19 +356,46 @@ function Configuracion() {
       setError('');
       setSuccess('');
       
-      // Eliminar en backend (apiURL) probando rutas candidatas
-      const qs = `?email=${encodeURIComponent(userToDelete.email)}`;
+      // Eliminar en backend (apiURL) probando rutas candidatas y variantes
+      const email = (userToDelete.email || '').trim().toLowerCase();
       const delCandidates = Array.isArray(usersApiPaths) && usersApiPaths.length ? usersApiPaths : ['/api/users'];
+      const variantsForPath = (p) => {
+        const base = `${apiURL}${p}`;
+        const enc = encodeURIComponent(email);
+        return [
+          { method: 'DELETE', url: `${base}?email=${enc}` },
+          { method: 'DELETE', url: `${base}/${enc}` },
+          { method: 'DELETE', url: base, body: JSON.stringify({ email }), headers: { 'Content-Type': 'application/json' } },
+          { method: 'POST',   url: `${base}/delete`, body: JSON.stringify({ email }), headers: { 'Content-Type': 'application/json' } },
+        ];
+      };
+
       let deletedOk = false;
       for (const p of delCandidates) {
-        const url = `${apiURL}${p}${qs}`;
+        const attempts = variantsForPath(p);
+        for (const attempt of attempts) {
+          try {
+            const res = await fetch(attempt.url, {
+              method: attempt.method,
+              headers: attempt.headers,
+              body: attempt.body
+            });
+            if (res.ok) { deletedOk = true; break; }
+          } catch {}
+        }
+        if (deletedOk) break;
+      }
+
+      // Si falló todo lo anterior, intentamos una ruta genérica final
+      if (!deletedOk) {
         try {
-          const res = await fetch(url, { method: 'DELETE' });
-          if (res.ok) { deletedOk = true; break; }
+          const res = await fetch(`${apiURL}/api/usuarios_registrados?email=${encodeURIComponent(email)}`, { method: 'DELETE' });
+          if (res.ok) deletedOk = true;
         } catch {}
       }
+
       if (!deletedOk) {
-        setError('No se pudo eliminar el usuario.');
+        setError('No se pudo eliminar el usuario en el servidor.');
         setShowDeleteModal(false);
         setUserToDelete(null);
         return;
@@ -379,12 +406,12 @@ function Configuracion() {
         let local = [];
         try { local = JSON.parse(localStorage.getItem('managedUsers') || '[]'); } catch {}
         if (!Array.isArray(local)) local = [];
-        local = local.filter(e => (e || '').toLowerCase() !== (userToDelete.email || '').toLowerCase());
+        local = local.filter(e => (e || '').toLowerCase() !== email);
         localStorage.setItem('managedUsers', JSON.stringify(local));
       } catch {}
 
       setSuccess('Usuario eliminado exitosamente');
-      setUsers((prev) => prev.filter(u => (u.email || '').toLowerCase() !== (userToDelete.email || '').toLowerCase()));
+      setUsers((prev) => prev.filter(u => (u.email || '').toLowerCase() !== email));
       setShowDeleteModal(false);
       setUserToDelete(null);
       setTimeout(() => setSuccess(''), 3000);
