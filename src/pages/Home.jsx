@@ -678,10 +678,27 @@ function Home() {
     setForcingClimatech(true);
 
     try {
+      // Intentar obtener la URL desde el análisis o desde el input pegado
+      const extractUrl = (text) => {
+        if (!text || typeof text !== 'string') return null;
+        const urlRegex = /https?:\/\/[^\s)]+/i;
+        const match = text.match(urlRegex);
+        return match ? match[0] : null;
+      };
+      const urlToSend =
+        manualAnalysisData?.analysis?.url ||
+        manualAnalysisData?.analysis?.link ||
+        extractUrl(manualAnalysisData?.input);
+
+      if (!urlToSend) {
+        throw new Error('Falta la URL de la noticia. Pega un enlace válido en el campo de entrada.');
+      }
+
       const forceRes = await fetch(`${apiURL}/api/Newsletter/forzarClimatech`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          url: urlToSend,
           input: manualAnalysisData.input,
           analysis: manualAnalysisData.analysis,
         }),
