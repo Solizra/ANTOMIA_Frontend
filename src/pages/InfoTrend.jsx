@@ -103,7 +103,7 @@ function InfoTrend() {
 
           <div className="infotrend-razonamiento">
             <h2>Razonamiento de la IA</h2>
-            <p>{trend.razonamientoIA}</p>
+            <p style={{ whiteSpace: 'pre-wrap' }}>{trend.razonamientoIA}</p>
           </div>
 
           <div className="infotrend-cards">
